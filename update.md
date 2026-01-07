@@ -298,7 +298,7 @@ mviz-rerun-bridge/
 
 | Version | Date | Commit | Description |
 |---------|------|--------|-------------|
-| v0.1.3 | 2026-01-07 | TBD | Phase 2+3: Display Plugins + Makepad UI Shell |
+| v0.1.3 | 2026-01-07 | 5484617 | Phase 2+3: Display Plugins + Makepad UI Shell |
 | v0.1.2 | 2026-01-06 | b574362 | Phase 1 Streams B+C: Transform System + Core Adapters |
 | v0.1.1 | 2026-01-06 | 13bdb7b | Phase 1 Core Foundation complete |
 | v0.1.0 | 2026-01-05 | 1c21c15 | Initial release with UI shell and simulation |
