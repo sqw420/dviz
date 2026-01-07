@@ -1,5 +1,52 @@
 # MViz Release Notes
 
+## v0.1.1 (2026-01-06)
+
+Phase 1: Core Foundation - Added mviz-core crate with foundational types.
+
+### New Crate: mviz-core
+
+Core types and traits for the MViz robotics visualizer.
+
+#### Transform Types
+- `FrameId` - Coordinate frame identifier
+- `Timestamp` - Nanosecond precision timestamps
+- `Transform` - 3D rigid transform (translation + quaternion)
+- `StampedTransform` - Transform with timestamp and frame IDs
+- `Pose` - Position and orientation in a frame
+
+#### Point Cloud Types
+- `Color` - RGBA color with constants and HSV conversion
+- `Colormap` - 8 colormaps (Jet, Rainbow, Turbo, Viridis, etc.)
+- `ColorMode` - Flat, PerPoint, ByAxis, ByIntensity, ByHeight, ByDistance
+- `PointCloud` - Points with positions, colors, intensities
+- `PointCloudStyle` - Point size, colormap, alpha settings
+
+#### Marker Types
+- `MarkerType` - Arrow, Cube, Sphere, Cylinder, LineStrip, LineList, etc.
+- `Marker` - Full marker with all properties
+- `MarkerBuilder` - Fluent builder pattern
+- `MarkerArray` - Collection of markers
+
+#### Display System
+- `Display` trait - Base trait for visualization displays
+- `DisplayContext` - Context for accessing visualization services
+- `DisplayFactory` trait - Factory for creating display instances
+- `DisplayRegistry` - Registry of display factories
+- `TransformProvider` trait - Coordinate frame transform lookup
+- `Properties` - Dynamic property system
+
+#### Configuration
+- `AppConfig` - Complete application configuration
+- `WindowConfig`, `ViewConfig`, `GlobalConfig`
+- `DisplayConfig`, `PanelConfig`
+- YAML serialization/deserialization
+
+### Tests
+- 44 unit tests passing
+
+---
+
 ## v0.1.0 (2026-01-07)
 
 Initial release of MViz - a visualization tool combining Makepad UI with Rerun 3D viewer.
