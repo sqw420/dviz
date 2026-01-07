@@ -1,5 +1,64 @@
 # MViz Release Notes
 
+## v0.1.2 (2026-01-06)
+
+Phase 1 Streams B+C: Transform System and Rerun Core Adapters.
+
+### New Crate: mviz-transform
+
+Transform system for coordinate frame management, similar to ROS TF.
+
+#### Frame Tree
+- `FrameNode` - Node in frame tree with parent/children relationships
+- `FrameTree` - Coordinate frame hierarchy with path finding
+  - `set_parent()` - Set frame parent relationship
+  - `path_to_root()` - Find path from any frame to root
+  - `common_ancestor()` - Find common ancestor of two frames
+  - `path_between()` - Find transform path between any two frames
+  - `remove()` - Remove frame with orphan handling
+
+#### Transform Buffer
+- `TransformKey` - (parent, child) frame pair identifier
+- `TransformHistory` - Time-indexed transforms with linear interpolation
+- `TransformBuffer` - Thread-safe transform buffer
+  - `set_transform()` - Store transform at timestamp
+  - `lookup_transform()` - Look up transform between any two frames
+  - `prune_old()` - Remove transforms older than duration
+- `TransformError` - NoPath, TransformNotFound, FrameNotFound, EmptyBuffer
+
+### Enhanced Crate: mviz-rerun-bridge
+
+Core adapters for logging mviz-core types to Rerun viewer.
+
+#### PointCloudCoreAdapter
+- Log `PointCloud` to Rerun with color modes:
+  - `FlatColor` - Single color for all points
+  - `RGB` - Per-point colors from point cloud data
+  - `AxisColor` - Color by axis position (X, Y, Z) with colormap
+  - `Intensity` - Color by intensity value with colormap
+- Configurable point radius
+
+#### TransformCoreAdapter
+- Log `Transform` to Rerun as Transform3D
+- Log coordinate frame axes (RGB for XYZ)
+- Log all frames in a frame tree
+
+#### MarkerCoreAdapter
+- Log all `Marker` types to Rerun:
+  - Arrow, Cube, Sphere, Cylinder
+  - LineStrip, LineList
+  - CubeList, SphereList
+  - Points, Text, TriangleList
+- Log `MarkerArray` collections
+- Per-marker colors and per-vertex colors supported
+
+### Tests
+- 21 new tests in mviz-transform
+- 3 new tests in mviz-rerun-bridge core adapters
+- 71 total tests passing across workspace
+
+---
+
 ## v0.1.1 (2026-01-06)
 
 Phase 1: Core Foundation - Added mviz-core crate with foundational types.
