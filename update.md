@@ -129,6 +129,16 @@ mviz-core/
 
 ## Version History
 
-| Version | Date | Description |
-|---------|------|-------------|
-| v0.1.0 | 2026-01-06 | Phase 1 Core Foundation complete |
+| Version | Date | Commit | Description |
+|---------|------|--------|-------------|
+| v0.1.1 | 2026-01-06 | 13bdb7b | Phase 1 Core Foundation complete |
+| v0.1.0 | 2026-01-05 | 1c21c15 | Initial release with UI shell and simulation |
+
+## Git History
+
+### v0.1.1 (2026-01-06)
+- **Commit:** 13bdb7b
+- **Files Changed:** 11 files, +3221 lines
+- **Tag:** v0.1.1
+- **Pushed:** Yes
+- **Tests:** 44 passing
