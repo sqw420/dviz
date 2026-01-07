@@ -5,11 +5,15 @@
 
 pub mod bridge;
 pub mod adapters;
+pub mod core_adapters;
 pub mod simulation;
 
 pub use bridge::{RerunBridge, RerunConfig, RerunError};
 pub use adapters::{
     ImuAdapter, PointCloudAdapter, PoseAdapter, LaserScanAdapter,
     VehicleAdapter, GridAdapter,
+};
+pub use core_adapters::{
+    PointCloudCoreAdapter, TransformCoreAdapter, MarkerCoreAdapter,
 };
 pub use simulation::{SensorSimulator, ImuData, LidarScan, LidarPoint, VehiclePose};

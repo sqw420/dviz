@@ -116,14 +116,108 @@ mviz-core/
 
 ---
 
-## Next Phase: Phase 2 - Rerun Integration
+## Phase 1 Stream B: Transform System
+
+**Status:** COMPLETED
+**Date:** 2026-01-06
+
+### Task 1.6: Frame Tree
+- **Status:** Completed
+- **Files Created:**
+  - `mviz-transform/Cargo.toml`
+  - `mviz-transform/src/lib.rs`
+  - `mviz-transform/src/frame_tree.rs`
+- **Types Implemented:**
+  - `FrameNode` - Node in frame tree with parent/children relationships
+  - `FrameTree` - Coordinate frame hierarchy with path finding
+- **Features:**
+  - Parent-child frame relationships
+  - `path_to_root()` - Find path from frame to root
+  - `common_ancestor()` - Find common ancestor of two frames
+  - `path_between()` - Find path between any two frames
+  - Frame removal with orphan handling
+- **Tests:** 12 tests passing
+
+### Task 1.7: Transform Buffer
+- **Status:** Completed
+- **Files Created:**
+  - `mviz-transform/src/transform_buffer.rs`
+- **Types Implemented:**
+  - `TransformKey` - (parent, child) frame pair key
+  - `TransformHistory` - Time-indexed transforms with interpolation
+  - `TransformBuffer` - Thread-safe transform buffer with frame tree
+  - `TransformError` - NoPath, TransformNotFound, FrameNotFound, EmptyBuffer
+  - `TransformResult<T>` - Result alias
+- **Features:**
+  - Linear interpolation between transforms
+  - `prune_old()` - Remove transforms older than duration
+  - `lookup_transform()` - Look up transform between any two frames
+  - Automatic transform chaining through frame tree
+- **Tests:** 9 tests passing
+- **Notes:** Fixed thiserror named fields to tuple variants
+
+---
+
+## Phase 1 Stream C: Rerun Integration
+
+**Status:** COMPLETED
+**Date:** 2026-01-06
+
+### Task 1.8-1.11: Core Adapters
+- **Status:** Completed
+- **Files Modified:**
+  - `mviz-rerun-bridge/Cargo.toml` (added mviz-core dependency)
+  - `mviz-rerun-bridge/src/lib.rs` (added core_adapters export)
+- **Files Created:**
+  - `mviz-rerun-bridge/src/core_adapters.rs`
+- **Types Implemented:**
+  - `PointCloudCoreAdapter` - Log PointCloud to Rerun with color modes
+  - `TransformCoreAdapter` - Log Transform to Rerun with frame axes visualization
+  - `MarkerCoreAdapter` - Log all Marker types to Rerun
+- **Marker Types Supported:**
+  - Arrow, Cube, Sphere, Cylinder
+  - LineStrip, LineList
+  - CubeList, SphereList
+  - Points, Text, TriangleList
+  - MeshResource (logged warning, not yet supported)
+- **Color Modes Supported:**
+  - FlatColor - Single color for all points
+  - RGB - Per-point colors from point cloud data
+  - AxisColor - Color by axis position (X, Y, Z) with colormap
+  - Intensity - Color by intensity value with colormap
+- **Tests:** 3 tests passing (colormap_lookup, compute_colors_flat, compute_colors_by_axis)
+- **Notes:**
+  - Fixed Rerun 0.28 API: `from_unmultiplied_rgba()`, `to_array()`
+  - Fixed String to &str conversions for entity paths
+
+### Phase 1 Streams B+C Summary
+
+**New Tests:** 27 (12 frame_tree + 9 transform_buffer + 6 rerun-bridge)
+**Total Workspace Tests:** 71 passing
+**New Crates:**
+```
+mviz-transform/
+  Cargo.toml
+  src/
+    lib.rs
+    frame_tree.rs
+    transform_buffer.rs
+
+mviz-rerun-bridge/
+  src/
+    core_adapters.rs (new)
+```
+
+---
+
+## Next Phase: Phase 2 - Display Plugins
 
 **Planned Tasks:**
-- Task 2.1: Rerun SDK wrapper types
-- Task 2.2: Point cloud to Rerun conversion
-- Task 2.3: Marker to Rerun conversion
-- Task 2.4: Transform tree visualization
-- Task 2.5: Recording session management
+- Task 2.1: Point Cloud Display (with Makepad widget)
+- Task 2.2: Marker Display (with Makepad widget)
+- Task 2.3: Transform Display (with Makepad widget)
+- Task 2.4: Grid Display
+- Task 2.5: Plugin loading and registration
 
 ---
 

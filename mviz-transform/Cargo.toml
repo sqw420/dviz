@@ -1,17 +1,14 @@
 [package]
-name = "mviz-rerun-bridge"
+name = "mviz-transform"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "Transform system for MViz robotics visualizer"
 
 [dependencies]
 mviz-core = { path = "../mviz-core" }
-rerun = { workspace = true }
 glam = { workspace = true }
-nalgebra = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
 parking_lot = { workspace = true }
-log = { workspace = true }
 thiserror = { workspace = true }
-rand = { workspace = true }
+
+[dev-dependencies]
