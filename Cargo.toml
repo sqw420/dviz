@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "mviz-core",
     "mviz-transform",
+    "mviz-displays",
     "mviz-shell",
     "mviz-widgets",
     "mviz-rerun-bridge",

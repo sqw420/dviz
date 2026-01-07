@@ -1,5 +1,71 @@
 # MViz Release Notes
 
+## v0.1.3 (2026-01-07)
+
+Phase 2: Display Plugins + Phase 3: Makepad UI Shell
+
+### New Crate: mviz-displays
+
+Display plugin system with visualization types.
+
+#### Display Types
+- **BaseDisplay** - Common display functionality with property system
+- **GridDisplay** - Ground plane grid (configurable size, cell count, color)
+- **AxesDisplay** - Coordinate axes visualization (RGB for XYZ)
+- **PointCloudDisplay** - Point cloud with color modes (Flat, RGB, Intensity, Axis)
+- **MarkerDisplay** - All marker types with lifetime management
+- **TfDisplay** - Transform frame tree visualization
+
+#### Features
+- Property system integration (PropertyValue, PropertyMeta, Properties)
+- DisplayUpdateContext for transform lookups and Rerun logging
+- Marker lifetime management with automatic expiration
+
+### Enhanced Crate: mviz-widgets
+
+New UI widgets for the control panel.
+
+#### DisplaysPanel
+- List of visualization displays with icons
+- Enable/disable checkboxes per display
+- Status indicators (OK, Warning, Error)
+- Add display button
+
+#### PropertiesPanel
+Property editors for selected display:
+- BoolProperty (checkbox)
+- FloatProperty (slider with value label)
+- StringProperty (text input)
+- ColorProperty (color swatch + RGB display)
+- Vec3Property (X, Y, Z inputs with color labels)
+- EnumProperty (dropdown)
+
+#### Toolbar
+Enhanced application toolbar:
+- Frame selector dropdown
+- PlayPauseButton with animated play/pause icon
+- StepButton for frame stepping (forward/backward)
+- SpeedSelector dropdown
+- TimeDisplay
+
+### Enhanced App: mviz-shell
+
+Three-column layout application:
+- **Left Panel**: DisplaysPanel + IMU/Vehicle sensor panels
+- **Center Panel**: Rerun viewer info with simulation stats
+- **Right Panel**: PropertiesPanel for display configuration
+
+### Tests
+- 29 new tests in mviz-displays
+- All key functions validated:
+  - App launches successfully
+  - Launch Rerun spawns viewer
+  - Play/Pause simulation works
+  - Sensor data updates at 50Hz
+  - Data streams to Rerun viewer
+
+---
+
 ## v0.1.2 (2026-01-06)
 
 Phase 1 Streams B+C: Transform System and Rerun Core Adapters.

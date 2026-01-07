@@ -210,14 +210,87 @@ mviz-rerun-bridge/
 
 ---
 
-## Next Phase: Phase 2 - Display Plugins
+## Phase 2: Display Plugins
 
-**Planned Tasks:**
-- Task 2.1: Point Cloud Display (with Makepad widget)
-- Task 2.2: Marker Display (with Makepad widget)
-- Task 2.3: Transform Display (with Makepad widget)
-- Task 2.4: Grid Display
-- Task 2.5: Plugin loading and registration
+**Status:** COMPLETED
+**Date:** 2026-01-07
+
+### Task 2.1-2.6: Display Plugin System
+- **Status:** Completed
+- **Files Created:**
+  - `mviz-displays/Cargo.toml`
+  - `mviz-displays/src/lib.rs`
+  - `mviz-displays/src/base.rs`
+  - `mviz-displays/src/grid.rs`
+  - `mviz-displays/src/axes.rs`
+  - `mviz-displays/src/point_cloud.rs`
+  - `mviz-displays/src/marker.rs`
+  - `mviz-displays/src/tf.rs`
+
+### Display Types Implemented:
+- **BaseDisplay** - Common display functionality with properties
+- **GridDisplay** - Ground plane grid (configurable size, cell count, color)
+- **AxesDisplay** - Coordinate axes visualization (RGB for XYZ)
+- **PointCloudDisplay** - Point cloud with color modes (Flat, RGB, Intensity, Axis)
+- **MarkerDisplay** - All marker types with lifetime management
+- **TfDisplay** - Transform frame tree visualization
+
+### Features:
+- Property system integration (PropertyValue, PropertyMeta, Properties)
+- DisplayUpdateContext for transform lookups and Rerun logging
+- Marker lifetime management with automatic expiration
+- All displays tested with unit tests
+
+### Tests: 29 tests passing in mviz-displays
+
+---
+
+## Phase 3: Makepad UI Shell
+
+**Status:** COMPLETED
+**Date:** 2026-01-07
+
+### Task 3.1-3.3: Enhanced UI Widgets
+- **Status:** Completed
+- **Files Created:**
+  - `mviz-widgets/src/displays_panel.rs`
+  - `mviz-widgets/src/properties_panel.rs`
+  - `mviz-widgets/src/toolbar.rs`
+- **Files Modified:**
+  - `mviz-widgets/src/lib.rs`
+  - `mviz-shell/src/app.rs`
+
+### New Widgets:
+- **DisplaysPanel** - List of visualization displays with:
+  - Display icons (Grid, Axes, PointCloud, Marker, TF)
+  - Enable/disable checkboxes
+  - Status indicators (OK, Warning, Error)
+  - Add display button
+- **PropertiesPanel** - Property editors for selected display:
+  - BoolProperty (checkbox)
+  - FloatProperty (slider)
+  - StringProperty (text input)
+  - ColorProperty (color swatch + RGB)
+  - Vec3Property (X, Y, Z inputs)
+  - EnumProperty (dropdown)
+- **Toolbar** - Enhanced application toolbar with:
+  - Frame selector dropdown
+  - PlayPauseButton with play/pause icon
+  - StepButton for frame stepping
+  - SpeedSelector dropdown
+  - TimeDisplay
+
+### App Layout:
+- Three-column layout: Left (Displays + Sensors), Center (Rerun info), Right (Properties)
+- Integrated toolbar with File/View buttons, frame selector, playback controls
+- Status labels for simulation time, FPS, LiDAR points
+
+### Validation:
+- App launches successfully
+- Launch Rerun button spawns viewer
+- Play/Pause simulation works
+- Sensor data updates in UI
+- Data streams to Rerun at 50Hz
 
 ---
 
@@ -225,6 +298,7 @@ mviz-rerun-bridge/
 
 | Version | Date | Commit | Description |
 |---------|------|--------|-------------|
+| v0.1.3 | 2026-01-07 | TBD | Phase 2+3: Display Plugins + Makepad UI Shell |
 | v0.1.2 | 2026-01-06 | b574362 | Phase 1 Streams B+C: Transform System + Core Adapters |
 | v0.1.1 | 2026-01-06 | 13bdb7b | Phase 1 Core Foundation complete |
 | v0.1.0 | 2026-01-05 | 1c21c15 | Initial release with UI shell and simulation |

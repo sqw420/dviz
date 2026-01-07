@@ -27,6 +27,9 @@ live_design! {
     use mviz_widgets::theme::*;
     use mviz_widgets::sensor_panel::SensorGroup;
     use mviz_widgets::control_bar::ControlBar;
+    use mviz_widgets::displays_panel::DisplaysPanel;
+    use mviz_widgets::properties_panel::PropertiesPanel;
+    use mviz_widgets::toolbar::Toolbar;
 
     // App icon
     MVIZ_ICON = dep("crate://self/resources/icons/viz.svg")
@@ -34,7 +37,7 @@ live_design! {
     App = {{App}} {
         ui: <Root> {
             main_window = <Window> {
-                window: { title: "MViz Rerun", inner_size: vec2(1000, 700) }
+                window: { title: "MViz - Robotics Visualizer", inner_size: vec2(1400, 850) }
                 pass: { clear_color: #1a1a1a }
 
                 body = <View> {
@@ -43,191 +46,214 @@ live_design! {
                     show_bg: true
                     draw_bg: { color: #1a1a1a }
 
-                    // Header
-                    header = <View> {
-                        width: Fill, height: Fit
+                    // ========================================================
+                    // TOOLBAR
+                    // ========================================================
+                    toolbar = <View> {
+                        width: Fill, height: 44
                         flow: Right
-                        spacing: 12
+                        spacing: 8
+                        padding: {left: 12, right: 12, top: 4, bottom: 4}
                         align: {y: 0.5}
-                        padding: {left: 20, right: 20, top: 15, bottom: 15}
                         show_bg: true
                         draw_bg: { color: #252525 }
 
+                        // App icon and title
                         <Icon> {
                             draw_icon: {
                                 svg_file: (MVIZ_ICON)
                                 fn get_color(self) -> vec4 { return #3b82f6; }
                             }
-                            icon_walk: {width: 28, height: 28}
+                            icon_walk: {width: 24, height: 24}
                         }
 
                         <Label> {
-                            text: "MViz Rerun"
+                            text: "MViz"
                             draw_text: {
                                 color: #ffffff
-                                text_style: { font_size: 20.0 }
+                                text_style: { font_size: 16.0 }
                             }
+                        }
+
+                        <View> { width: 20, height: 1 }
+
+                        // File menu
+                        file_btn = <Button> {
+                            text: "File"
+                            draw_text: { color: #fff }
+                        }
+
+                        view_btn = <Button> {
+                            text: "View"
+                            draw_text: { color: #fff }
                         }
 
                         <View> { width: Fill, height: 1 }
 
-                        sim_toggle = <Button> {
-                            text: "Start Simulation"
+                        // Frame selector
+                        <Label> {
+                            text: "Fixed Frame:"
+                            draw_text: { color: #888, text_style: { font_size: 11.0 } }
+                        }
+
+                        frame_dropdown = <DropDown> {
+                            width: 100, height: 26
+                        }
+
+                        <View> { width: 20, height: 1 }
+
+                        // Playback controls
+                        play_btn = <Button> {
+                            text: "Play"
                             draw_text: { color: #fff }
                         }
 
+                        time_label = <Label> {
+                            text: "0.00s"
+                            draw_text: { color: #aaa, text_style: { font_size: 11.0 } }
+                        }
+
+                        <View> { width: 20, height: 1 }
+
+                        // Rerun launch
                         launch_btn = <Button> {
-                            text: "Launch Rerun Viewer"
+                            text: "Launch Rerun"
                             draw_text: { color: #fff }
                         }
                     }
 
-                    // Main content
+                    // ========================================================
+                    // MAIN CONTENT AREA
+                    // ========================================================
                     content = <View> {
                         width: Fill, height: Fill
                         flow: Right
-                        padding: 20
-                        spacing: 20
+                        padding: 8
+                        spacing: 8
 
-                        // Left panel - Sensor displays
+                        // LEFT PANEL - Displays
                         left_panel = <View> {
-                            width: 340, height: Fill
+                            width: 280, height: Fill
                             flow: Down
-                            spacing: 16
+                            spacing: 8
 
-                            // IMU Panel
+                            // Displays list
+                            displays_panel = <DisplaysPanel> {
+                                width: Fill, height: 300
+                            }
+
+                            // Sensor data panels (from original app)
                             imu_panel = <RoundedView> {
                                 width: Fill, height: Fit
                                 flow: Down
-                                padding: 16
-                                spacing: 8
+                                padding: 12
+                                spacing: 6
                                 show_bg: true
                                 draw_bg: { color: #252525, border_radius: 8.0 }
 
                                 <Label> {
                                     text: "IMU Sensor"
-                                    draw_text: { color: #ffffff, text_style: { font_size: 14.0 } }
+                                    draw_text: { color: #ffffff, text_style: { font_size: 12.0 } }
                                 }
 
                                 imu_accel = <Label> {
                                     text: "Accel: 0.00, 0.00, 9.81"
-                                    draw_text: { color: #a0a0a0, text_style: { font_size: 11.0 } }
+                                    draw_text: { color: #a0a0a0, text_style: { font_size: 10.0 } }
                                 }
 
                                 imu_gyro = <Label> {
                                     text: "Gyro: 0.00, 0.00, 0.00"
-                                    draw_text: { color: #a0a0a0, text_style: { font_size: 11.0 } }
+                                    draw_text: { color: #a0a0a0, text_style: { font_size: 10.0 } }
                                 }
                             }
 
-                            // Vehicle Panel
+                            // Vehicle state
                             vehicle_panel = <RoundedView> {
                                 width: Fill, height: Fit
                                 flow: Down
-                                padding: 16
-                                spacing: 8
+                                padding: 12
+                                spacing: 6
                                 show_bg: true
                                 draw_bg: { color: #252525, border_radius: 8.0 }
 
                                 <Label> {
                                     text: "Vehicle State"
-                                    draw_text: { color: #ffffff, text_style: { font_size: 14.0 } }
+                                    draw_text: { color: #ffffff, text_style: { font_size: 12.0 } }
                                 }
 
                                 vehicle_pos = <Label> {
                                     text: "Position: 0.00, 0.00"
-                                    draw_text: { color: #a0a0a0, text_style: { font_size: 11.0 } }
+                                    draw_text: { color: #a0a0a0, text_style: { font_size: 10.0 } }
                                 }
 
                                 vehicle_speed = <Label> {
                                     text: "Speed: 0.00 m/s"
-                                    draw_text: { color: #a0a0a0, text_style: { font_size: 11.0 } }
-                                }
-
-                                vehicle_heading = <Label> {
-                                    text: "Heading: 0.0 deg"
-                                    draw_text: { color: #a0a0a0, text_style: { font_size: 11.0 } }
-                                }
-                            }
-
-                            // LiDAR Panel
-                            lidar_panel = <RoundedView> {
-                                width: Fill, height: Fit
-                                flow: Down
-                                padding: 16
-                                spacing: 8
-                                show_bg: true
-                                draw_bg: { color: #252525, border_radius: 8.0 }
-
-                                <Label> {
-                                    text: "LiDAR"
-                                    draw_text: { color: #ffffff, text_style: { font_size: 14.0 } }
-                                }
-
-                                lidar_points = <Label> {
-                                    text: "Points: 0"
-                                    draw_text: { color: #a0a0a0, text_style: { font_size: 11.0 } }
-                                }
-                            }
-
-                            // Simulation Panel
-                            sim_panel = <RoundedView> {
-                                width: Fill, height: Fit
-                                flow: Down
-                                padding: 16
-                                spacing: 8
-                                show_bg: true
-                                draw_bg: { color: #252525, border_radius: 8.0 }
-
-                                <Label> {
-                                    text: "Simulation"
-                                    draw_text: { color: #ffffff, text_style: { font_size: 14.0 } }
-                                }
-
-                                sim_time = <Label> {
-                                    text: "Time: 0.00s"
-                                    draw_text: { color: #a0a0a0, text_style: { font_size: 11.0 } }
-                                }
-
-                                sim_fps = <Label> {
-                                    text: "FPS: 0"
-                                    draw_text: { color: #a0a0a0, text_style: { font_size: 11.0 } }
+                                    draw_text: { color: #a0a0a0, text_style: { font_size: 10.0 } }
                                 }
                             }
 
                             <View> { width: Fill, height: Fill }
 
+                            // Status
                             status_label = <Label> {
                                 text: "Status: Ready"
                                 draw_text: { color: #606060, text_style: { font_size: 10.0 } }
                             }
                         }
 
-                        // Right panel - Info
-                        right_panel = <RoundedView> {
+                        // CENTER - Rerun Viewer Info
+                        center_panel = <RoundedView> {
                             width: Fill, height: Fill
                             flow: Down
                             padding: 24
                             spacing: 16
                             show_bg: true
-                            draw_bg: { color: #252525, border_radius: 8.0 }
+                            draw_bg: { color: #1e1e1e, border_radius: 8.0 }
 
                             <Label> {
-                                text: "Rerun Visualization"
-                                draw_text: { color: #ffffff, text_style: { font_size: 18.0 } }
+                                text: "3D Visualization (Rerun)"
+                                draw_text: { color: #ffffff, text_style: { font_size: 16.0 } }
                             }
 
-                            info_text = <Label> {
+                            <Label> {
                                 width: Fill
-                                text: "1. Click 'Launch Rerun Viewer' to open 3D visualization\n2. Click 'Start Simulation' to begin sensor data streaming\n\nThe viewer will display:\n- Vehicle body (blue box)\n- Vehicle path (yellow line)\n- LiDAR point cloud (colored by height)\n- IMU acceleration/velocity vectors\n- Ground grid reference"
-                                draw_text: { color: #a0a0a0, text_style: { font_size: 13.0 }, wrap: Word }
+                                text: "The 3D visualization is displayed in the Rerun Viewer window.\n\nClick 'Launch Rerun' to open the viewer, then 'Play' to start the simulation.\n\nThe viewer will display:\n- Vehicle body and path\n- LiDAR point cloud\n- IMU vectors\n- Coordinate frames (TF)"
+                                draw_text: { color: #a0a0a0, text_style: { font_size: 12.0 }, wrap: Word }
                             }
 
                             <View> { width: Fill, height: Fill }
 
-                            <Label> {
-                                text: "Keyboard shortcuts:\nSpace - Toggle simulation"
-                                draw_text: { color: #505050, text_style: { font_size: 11.0 } }
+                            // Stats
+                            stats_panel = <View> {
+                                width: Fill, height: Fit
+                                flow: Down
+                                spacing: 4
+
+                                sim_time = <Label> {
+                                    text: "Simulation Time: 0.00s"
+                                    draw_text: { color: #707070, text_style: { font_size: 11.0 } }
+                                }
+
+                                sim_fps = <Label> {
+                                    text: "Update Rate: 0 Hz"
+                                    draw_text: { color: #707070, text_style: { font_size: 11.0 } }
+                                }
+
+                                lidar_points = <Label> {
+                                    text: "LiDAR Points: 0"
+                                    draw_text: { color: #707070, text_style: { font_size: 11.0 } }
+                                }
+                            }
+                        }
+
+                        // RIGHT PANEL - Properties
+                        right_panel = <View> {
+                            width: 280, height: Fill
+                            flow: Down
+                            spacing: 8
+
+                            properties_panel = <PropertiesPanel> {
+                                width: Fill, height: Fill
                             }
                         }
                     }
@@ -277,8 +303,8 @@ impl MatchEvent for App {
             self.launch_rerun(cx);
         }
 
-        // Simulation toggle button
-        if self.ui.button(id!(sim_toggle)).clicked(actions) {
+        // Play/Pause button
+        if self.ui.button(id!(play_btn)).clicked(actions) {
             self.toggle_simulation(cx);
         }
     }
@@ -348,10 +374,10 @@ impl App {
         debug_log(&format!("Simulation toggled: running={}", self.simulation_running));
 
         if self.simulation_running {
-            self.ui.button(id!(sim_toggle)).set_text(cx, "Stop Simulation");
+            self.ui.button(id!(play_btn)).set_text(cx, "Pause");
             self.ui.label(id!(status_label)).set_text(cx, "Status: Simulation Running");
         } else {
-            self.ui.button(id!(sim_toggle)).set_text(cx, "Start Simulation");
+            self.ui.button(id!(play_btn)).set_text(cx, "Play");
             self.ui.label(id!(status_label)).set_text(cx, "Status: Simulation Paused");
         }
         self.ui.redraw(cx);
@@ -406,20 +432,19 @@ impl App {
         self.ui.label(id!(vehicle_speed)).set_text(cx,
             &format!("Speed: {:.2} m/s", speed));
 
-        let heading_deg = pose_data.orientation[2].atan2(pose_data.orientation[3]) * 2.0 * 180.0 / std::f32::consts::PI;
-        self.ui.label(id!(vehicle_heading)).set_text(cx,
-            &format!("Heading: {:.1} deg", heading_deg));
-
         if let Some(ref lidar) = lidar_data {
             self.ui.label(id!(lidar_points)).set_text(cx,
-                &format!("Points: {}", lidar.points.len()));
+                &format!("LiDAR Points: {}", lidar.points.len()));
         }
 
         self.ui.label(id!(sim_time)).set_text(cx,
-            &format!("Time: {:.2}s", sim_time));
+            &format!("Simulation Time: {:.2}s", sim_time));
 
         self.ui.label(id!(sim_fps)).set_text(cx,
-            &format!("FPS: {:.0}", self.fps));
+            &format!("Update Rate: {:.0} Hz", self.fps));
+
+        self.ui.label(id!(time_label)).set_text(cx,
+            &format!("{:.2}s", sim_time));
 
         // Log to Rerun if connected
         if let Some(bridge) = &self.rerun_bridge {

@@ -1,0 +1,18 @@
+[package]
+name = "mviz-displays"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Display plugins for MViz robotics visualizer"
+
+[dependencies]
+mviz-core = { path = "../mviz-core" }
+mviz-transform = { path = "../mviz-transform" }
+mviz-rerun-bridge = { path = "../mviz-rerun-bridge" }
+rerun = { workspace = true }
+glam = { workspace = true }
+parking_lot = { workspace = true }
+log = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
