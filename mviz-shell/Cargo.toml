@@ -1,0 +1,19 @@
+[package]
+name = "mviz-shell"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+makepad-widgets = { workspace = true }
+mviz-widgets = { path = "../mviz-widgets" }
+mviz-rerun-bridge = { path = "../mviz-rerun-bridge" }
+rerun = { workspace = true }
+log = { workspace = true }
+env_logger = { workspace = true }
+rand = { workspace = true }
+parking_lot = { workspace = true }
+
+[[bin]]
+name = "mviz"
+path = "src/main.rs"

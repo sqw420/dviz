@@ -1,0 +1,40 @@
+[workspace]
+resolver = "2"
+members = [
+    "mviz-shell",
+    "mviz-widgets",
+    "mviz-rerun-bridge",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+[workspace.dependencies]
+# Makepad UI framework
+makepad-widgets = { git = "https://github.com/makepad/makepad", branch = "main" }
+
+# Rerun SDK for 3D visualization
+rerun = "0.28"
+
+# Math
+glam = { version = "0.25", features = ["serde"] }
+nalgebra = "0.33"
+
+# Async runtime
+tokio = { version = "1", features = ["full", "sync"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+
+# Utilities
+parking_lot = "0.12"
+log = "0.4"
+env_logger = "0.11"
+eyre = "0.6"
+thiserror = "1.0"
+crossbeam-channel = "0.5"
+rand = "0.8"

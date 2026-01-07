@@ -1,0 +1,16 @@
+# Build artifacts
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Debug logs
+/tmp/mviz_debug.log
+
+# Claude instructions
+CLAUDE.md

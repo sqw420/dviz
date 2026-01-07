@@ -1,0 +1,16 @@
+[package]
+name = "mviz-rerun-bridge"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+rerun = { workspace = true }
+glam = { workspace = true }
+nalgebra = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+parking_lot = { workspace = true }
+log = { workspace = true }
+thiserror = { workspace = true }
+rand = { workspace = true }
