@@ -1,5 +1,40 @@
 # MViz Release Notes
 
+## v0.1.4 (2026-01-08)
+
+Phase 4: URDF Robot Model Loading with Rerun Built-in Data Loader
+
+### New Features
+
+#### URDF Robot Model Display
+- Integrated Rerun's built-in URDF data loader (introduced in Rerun 0.24)
+- Load robot models from URDF files with proper mesh rendering
+- SO-ARM100 robot arm as test model with STL mesh files
+- Robot displayed under `world/robot/*` entity hierarchy for proper 3D space integration
+
+#### Add Display Button
+- Fixed "Add Display" button functionality in DisplaysPanel
+- Cycles through display types: Grid, Axes, PointCloud, LaserScan, TF
+- Each click adds a different visualization to Rerun viewer
+
+#### Test Buttons
+- "Test Laser" - Displays 360-degree laser scan visualization
+- "Test Robot" - Loads SO-ARM100 robot arm from URDF with STL meshes
+
+### New Files
+- `so100.urdf` - SO-ARM100 robot arm URDF description
+- `assets/*.stl` - 13 STL mesh files for robot visualization
+- `car.urdf` - Simple car model with wheels, body, sensors
+- `mviz-displays/src/laser_scan.rs` - Laser scan simulation and display
+- `mviz-displays/src/robot_model.rs` - Robot model display plugin
+
+### Technical Changes
+- DisplaysPanelAction enum for widget event handling
+- Entity paths use `world/robot/*` prefix for proper Rerun coordinate space
+- Uses `RecordingStream::log_file_from_path()` for URDF loading
+
+---
+
 ## v0.1.3 (2026-01-07)
 
 Phase 2: Display Plugins + Phase 3: Makepad UI Shell

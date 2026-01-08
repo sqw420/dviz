@@ -191,6 +191,19 @@ impl<'a> DisplayUpdateContext<'a> {
             wall_dt,
         }
     }
+
+    /// Get the recording stream
+    pub fn recording_stream(&self) -> &rerun::RecordingStream {
+        self.stream
+    }
+
+    /// Look up transform for a frame to fixed frame
+    pub fn lookup_transform(&self, frame: &str) -> Option<mviz_core::types::Transform> {
+        let frame_id = mviz_core::FrameId::new(frame);
+        self.transform_buffer
+            .lookup_transform(self.fixed_frame, &frame_id, self.current_time)
+            .ok()
+    }
 }
 
 // ============================================================================

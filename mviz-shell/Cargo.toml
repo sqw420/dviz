@@ -8,6 +8,7 @@ license.workspace = true
 makepad-widgets = { workspace = true }
 mviz-widgets = { path = "../mviz-widgets" }
 mviz-rerun-bridge = { path = "../mviz-rerun-bridge" }
+mviz-displays = { path = "../mviz-displays" }
 rerun = { workspace = true }
 log = { workspace = true }
 env_logger = { workspace = true }

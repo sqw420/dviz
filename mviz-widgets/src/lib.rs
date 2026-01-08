@@ -18,7 +18,7 @@ pub mod properties_panel;
 pub mod toolbar;
 
 // Re-exports
-pub use displays_panel::{DisplayInfo, DisplayListItem, DisplaysPanel};
+pub use displays_panel::{DisplayInfo, DisplayListItem, DisplaysPanel, DisplaysPanelAction};
 pub use properties_panel::{Property, PropertyValue, PropertiesPanel};
 pub use toolbar::{FrameSelector, Toolbar};
 

@@ -351,11 +351,39 @@ pub struct DisplaysPanel {
 impl Widget for DisplaysPanel {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         self.view.handle_event(cx, event, scope);
+
+        // Handle Add Display button click
+        let add_btn = self.view(id!(add_section.add_btn));
+        match event.hits(cx, add_btn.area()) {
+            Hit::FingerHoverIn(_) => {
+                add_btn.apply_over(cx, live!{ draw_bg: { hover: 1.0 } });
+                self.redraw(cx);
+            }
+            Hit::FingerHoverOut(_) => {
+                add_btn.apply_over(cx, live!{ draw_bg: { hover: 0.0 } });
+                self.redraw(cx);
+            }
+            Hit::FingerUp(fe) => {
+                if fe.is_over {
+                    // Emit action when clicked
+                    cx.widget_action(self.widget_uid(), &scope.path, DisplaysPanelAction::AddDisplayClicked);
+                }
+            }
+            _ => {}
+        }
     }
 
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
         self.view.draw_walk(cx, scope, walk)
     }
+}
+
+// Action emitted by DisplaysPanel
+#[derive(Clone, Debug, DefaultNone)]
+pub enum DisplaysPanelAction {
+    None,
+    AddDisplayClicked,
+    DisplaySelected(u64),
 }
 
 impl DisplaysPanel {

@@ -9,6 +9,8 @@
 //! - [`TfDisplay`] - Transform tree visualization
 //! - [`PointCloudDisplay`] - Point cloud with decay and queue support
 //! - [`MarkerDisplay`] - Visualization markers with lifetime management
+//! - [`RobotModelDisplay`] - Robot model from URDF
+//! - [`LaserScanDisplay`] - 2D laser scanner data
 //!
 //! ## Usage
 //!
@@ -37,6 +39,8 @@ pub mod axes;
 pub mod tf;
 pub mod point_cloud;
 pub mod marker;
+pub mod robot_model;
+pub mod laser_scan;
 
 // Re-exports
 pub use base::{BaseDisplay, DisplayUpdateContext};
@@ -45,6 +49,8 @@ pub use axes::{AxesDisplay, AxesProperties};
 pub use tf::{TfDisplay, TfProperties};
 pub use point_cloud::{PointCloudDisplay, PointCloudProperties};
 pub use marker::{MarkerDisplay, MarkerKey, MarkerProperties};
+pub use robot_model::{RobotModelDisplay, RobotModelProperties, RobotSource};
+pub use laser_scan::{LaserScanDisplay, LaserScanData, LaserScanProperties, LaserScanColorMode};
 
 /// Display type identifiers
 pub mod display_types {
@@ -53,4 +59,6 @@ pub mod display_types {
     pub const TF: &str = "tf";
     pub const POINT_CLOUD: &str = "point_cloud";
     pub const MARKER: &str = "marker";
+    pub const ROBOT_MODEL: &str = "robot_model";
+    pub const LASER_SCAN: &str = "laser_scan";
 }

@@ -9,6 +9,7 @@ description = "Display plugins for MViz robotics visualizer"
 mviz-core = { path = "../mviz-core" }
 mviz-transform = { path = "../mviz-transform" }
 mviz-rerun-bridge = { path = "../mviz-rerun-bridge" }
+mviz-urdf = { path = "../mviz-urdf" }
 rerun = { workspace = true }
 glam = { workspace = true }
 parking_lot = { workspace = true }
