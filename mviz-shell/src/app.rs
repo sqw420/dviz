@@ -13,6 +13,10 @@ use mviz_core::zenoh_protocol::{Points3DData, Boxes3DData, Arrows3DData, LineStr
 use std::io::Write;
 
 fn debug_log(msg: &str) {
+    // Print to stderr for terminal visibility
+    eprintln!("[mviz] {}", msg);
+
+    // Also write to log file
     if let Ok(mut f) = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
@@ -510,8 +514,10 @@ impl App {
                 self.ui.button(id!(launch_btn)).set_text(cx, "Rerun Spawned");
             }
             Err(e) => {
-                debug_log(&format!("Failed to spawn Rerun: {}", e));
-                self.ui.label(id!(status_label)).set_text(cx, &format!("Error: {}", e));
+                let error_msg = format!("Failed to spawn Rerun viewer: {}", e);
+                debug_log(&error_msg);
+                debug_log("Hint: Make sure rerun-sdk is installed: pip install rerun-sdk");
+                self.ui.label(id!(status_label)).set_text(cx, "Error: spawn failed (see terminal)");
             }
         }
     }
