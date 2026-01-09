@@ -1,5 +1,72 @@
 # MViz Release Notes
 
+## v0.1.5 (2026-01-08)
+
+Phase 5: Zenoh Universal Protocol for LAN Visualization
+
+### Architecture
+
+Distributed robotics visualization via Zenoh pub/sub:
+- **Robot side**: Dora dataflow with mviz-bridge publishes via Zenoh
+- **PC side**: mviz-shell receives via Zenoh, displays in Rerun
+
+### New Crate: mviz-rerun-bridge (Dora Node)
+
+Universal Dora node that publishes ANY sensor data via Zenoh.
+
+#### Supported Data Types
+- `points3d` - Point clouds (binary xyz_f32 format)
+- `boxes3d` - 3D boxes with quaternion rotation
+- `arrows3d` - Arrow vectors (IMU, velocity)
+- `linestrips3d` - Line strips (trajectories, paths)
+- `transform3d` - Coordinate transforms (4x4 matrix or translation+quaternion)
+- `scalar` - Time-series values
+
+#### Environment Variables
+- `ZENOH_CONNECT` - Zenoh router address (default: auto-discovery)
+- `ZENOH_TOPIC_PREFIX` - Topic prefix (default: "mviz")
+
+### New Module: mviz-core/zenoh_protocol.rs
+
+Universal message format for Zenoh communication:
+- JSON header + optional binary payload
+- `MvizMessage` struct with type, timestamp, data, format, count
+- Serialization/deserialization utilities
+
+### New Module: mviz-shell/zenoh_receiver.rs
+
+Universal Zenoh subscriber for PC-side visualization:
+- Subscribes to `{prefix}/**` wildcard topics
+- Parses universal message format
+- Sends typed `VisData` to UI thread
+
+### Enhanced: mviz-shell/app.rs
+
+- Zenoh connection button for LAN data reception
+- Universal message handler (`log_vis_data_to_rerun`)
+- Trajectory accumulation for `sim_pose` and `odom_pose`
+- LineStrips3D with 0.03 radius for visible trajectory lines
+
+### New Dataflow Configurations
+
+- `dataflow-path-following.yml` - Vehicle path following with Zenoh bridge
+- `dataflow-mapping.yml` - Vehicle mapping with point cloud
+- `dataflow-robot.yml` - Generic robot dataflow
+- `dataflow.yml` - Base dataflow template
+
+### Usage
+
+```bash
+# Robot side (headless)
+dora start dataflow-path-following.yml --name pathfollow
+
+# PC side (with display)
+cargo run -p mviz-shell
+# Click "Spawn Rerun" then "Connect Zenoh"
+```
+
+---
+
 ## v0.1.4 (2026-01-08)
 
 Phase 4: URDF Robot Model Loading with Rerun Built-in Data Loader
