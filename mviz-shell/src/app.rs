@@ -6,7 +6,7 @@
 use makepad_widgets::*;
 use mviz_rerun_bridge::{RerunBridge, RerunConfig, SensorSimulator};
 use mviz_displays::laser_scan::simulate_laser_scan;
-use mviz_widgets::{DisplaysPanelAction, LogPanelAction, LogDisplayEntry, LogPanelWidgetRefExt};
+use mviz_widgets::{DisplaysPanelAction, LogPanelAction, LogDisplayEntry, LogPanelWidgetRefExt, NodeDetailPanelAction, NodeDetailPanelWidgetRefExt, NodeInput, NodeOutput};
 use crate::dora_receiver::{DoraReceiver, DoraMessage, DoraData};
 use crate::zenoh_receiver::{ZenohReceiver, ZenohMessage, VisData, parse_points_xyz_f32};
 use mviz_core::zenoh_protocol::{Points3DData, Boxes3DData, Arrows3DData, LineStrips3DData, Transform3DData, ScalarData, LogLevel, binary_formats};
@@ -42,6 +42,7 @@ live_design! {
     use mviz_widgets::properties_panel::PropertiesPanel;
     use mviz_widgets::toolbar::Toolbar;
     use mviz_widgets::log_panel::LogPanel;
+    use mviz_widgets::node_detail_panel::NodeDetailPanel;
 
     // App icon
     MVIZ_ICON = dep("crate://self/resources/icons/viz.svg")
@@ -231,6 +232,36 @@ live_design! {
                                 }
                             }
 
+                            // Stats (moved from center panel)
+                            stats_panel = <RoundedView> {
+                                width: Fill, height: Fit
+                                flow: Down
+                                padding: 12
+                                spacing: 4
+                                show_bg: true
+                                draw_bg: { color: #252525, border_radius: 8.0 }
+
+                                <Label> {
+                                    text: "Statistics"
+                                    draw_text: { color: #ffffff, text_style: { font_size: 12.0 } }
+                                }
+
+                                sim_time = <Label> {
+                                    text: "Time: 0.00s"
+                                    draw_text: { color: #707070, text_style: { font_size: 10.0 } }
+                                }
+
+                                sim_fps = <Label> {
+                                    text: "Rate: 0 Hz"
+                                    draw_text: { color: #707070, text_style: { font_size: 10.0 } }
+                                }
+
+                                lidar_points = <Label> {
+                                    text: "Points: 0"
+                                    draw_text: { color: #707070, text_style: { font_size: 10.0 } }
+                                }
+                            }
+
                             <View> { width: Fill, height: Fill }
 
                             // Status
@@ -240,49 +271,9 @@ live_design! {
                             }
                         }
 
-                        // CENTER - Rerun Viewer Info
-                        center_panel = <RoundedView> {
+                        // CENTER - Node Detail Panel
+                        node_detail_panel = <NodeDetailPanel> {
                             width: Fill, height: Fill
-                            flow: Down
-                            padding: 24
-                            spacing: 16
-                            show_bg: true
-                            draw_bg: { color: #1e1e1e, border_radius: 8.0 }
-
-                            <Label> {
-                                text: "3D Visualization (Rerun)"
-                                draw_text: { color: #ffffff, text_style: { font_size: 16.0 } }
-                            }
-
-                            <Label> {
-                                width: Fill
-                                text: "The 3D visualization is displayed in the Rerun Viewer window.\n\nClick 'Launch Rerun' to open the viewer, then 'Play' to start the simulation.\n\nThe viewer will display:\n- Vehicle body and path\n- LiDAR point cloud\n- IMU vectors\n- Coordinate frames (TF)"
-                                draw_text: { color: #a0a0a0, text_style: { font_size: 12.0 }, wrap: Word }
-                            }
-
-                            <View> { width: Fill, height: Fill }
-
-                            // Stats
-                            stats_panel = <View> {
-                                width: Fill, height: Fit
-                                flow: Down
-                                spacing: 4
-
-                                sim_time = <Label> {
-                                    text: "Simulation Time: 0.00s"
-                                    draw_text: { color: #707070, text_style: { font_size: 11.0 } }
-                                }
-
-                                sim_fps = <Label> {
-                                    text: "Update Rate: 0 Hz"
-                                    draw_text: { color: #707070, text_style: { font_size: 11.0 } }
-                                }
-
-                                lidar_points = <Label> {
-                                    text: "LiDAR Points: 0"
-                                    draw_text: { color: #707070, text_style: { font_size: 11.0 } }
-                                }
-                            }
                         }
 
                         // RIGHT PANEL - Properties + System Log
@@ -422,6 +413,19 @@ impl MatchEvent for App {
                     self.ui.log_panel(id!(log_panel)).clear(cx);
                     self.log_entry_count = 0;
                     debug_log("Cleared system log");
+                }
+                _ => {}
+            }
+        }
+
+        // Handle NodeDetailPanel actions
+        for action in actions {
+            match action.as_widget_action().cast::<NodeDetailPanelAction>() {
+                NodeDetailPanelAction::NodeSelected(node_id) => {
+                    debug_log(&format!("Node selected: {}", node_id));
+                }
+                NodeDetailPanelAction::ClearLogsClicked => {
+                    debug_log("Node logs cleared");
                 }
                 _ => {}
             }
@@ -1409,7 +1413,7 @@ impl App {
                         level: level_num,
                         level_str: log_entry.level.as_str().to_string(),
                         node_id: log_entry.node_id.clone(),
-                        message: log_entry.message,
+                        message: log_entry.message.clone(),
                     };
 
                     // Track discovered node
@@ -1417,11 +1421,15 @@ impl App {
                         debug_log(&format!("Discovered node from log: {}", log_entry.node_id));
                         // Update log panel with new node list
                         let nodes: Vec<String> = self.discovered_nodes.iter().cloned().collect();
-                        self.ui.log_panel(id!(log_panel)).set_discovered_nodes(cx, nodes);
+                        self.ui.log_panel(id!(log_panel)).set_discovered_nodes(cx, nodes.clone());
+                        // Also update node detail panel
+                        self.ui.node_detail_panel(id!(node_detail_panel)).set_discovered_nodes(cx, nodes);
                     }
 
                     // Add to log panel
-                    self.ui.log_panel(id!(log_panel)).add_entry(cx, display_entry);
+                    self.ui.log_panel(id!(log_panel)).add_entry(cx, display_entry.clone());
+                    // Also add to node detail panel
+                    self.ui.node_detail_panel(id!(node_detail_panel)).add_log(cx, display_entry);
 
                     if self.log_entry_count % 50 == 1 {
                         debug_log(&format!("Log entries: {}", self.log_entry_count));
@@ -1432,7 +1440,8 @@ impl App {
                     if self.discovered_nodes.insert(node_id.clone()) {
                         debug_log(&format!("Node discovered: {}", node_id));
                         let nodes: Vec<String> = self.discovered_nodes.iter().cloned().collect();
-                        self.ui.log_panel(id!(log_panel)).set_discovered_nodes(cx, nodes);
+                        self.ui.log_panel(id!(log_panel)).set_discovered_nodes(cx, nodes.clone());
+                        self.ui.node_detail_panel(id!(node_detail_panel)).set_discovered_nodes(cx, nodes);
                     }
                 }
             }

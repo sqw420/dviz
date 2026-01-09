@@ -1,5 +1,67 @@
 # MViz Release Notes
 
+## v0.2.0 (2026-01-09)
+
+### Implementation: Node Detail Panel (Phase 7)
+
+Replaced center panel static text with an interactive Node Detail Panel for dataflow node inspection.
+
+#### New Widget: NodeDetailPanel (mviz-widgets/src/node_detail_panel.rs)
+
+- **Node Selector**: DropDown populated dynamically from discovered nodes
+- **I/O Display**: Two-column layout showing inputs (yellow) and outputs (blue)
+- **Filtered Logs**: Shows only logs from the selected node
+- **Status Indicator**: Visual indicator showing Ready/Active state
+- **Clear Button**: Clear logs for current node
+
+#### Widget Architecture
+
+```rust
+#[derive(Live, LiveHook, Widget)]
+pub struct NodeDetailPanel {
+    view: View,
+    nodes: Vec<NodeDisplayState>,
+    selected_node: Option<String>,
+    node_logs: Vec<LogDisplayEntry>,
+    all_logs: Vec<LogDisplayEntry>,
+    discovered_nodes: Vec<String>,
+}
+```
+
+#### Key Methods
+
+- `add_discovered_node()` - Add node to dropdown
+- `set_discovered_nodes()` - Bulk update node list
+- `add_log()` - Add log entry (filtered by node)
+- `set_node_definition()` - Set input/output ports
+- `filter_logs_for_node()` - Filter stored logs on node selection
+
+#### App Integration (mviz-shell/src/app.rs)
+
+- Center panel now uses `<NodeDetailPanel>` instead of static text
+- Log entries routed to both LogPanel and NodeDetailPanel
+- Node discovery updates both panels
+- NodeDetailPanelAction handling for selection and clear events
+- Stats panel moved to left sidebar
+
+#### UI Layout
+
+```
+CENTER PANEL:
++--------------------------------------------------+
+| NODE: [dropdown]                           [*]   |
+|--------------------------------------------------|
+| INPUTS:              | OUTPUTS:                  |
+|  * tick (from: ...)  |  * pose -> [rerun, ...]   |
+|--------------------------------------------------|
+| NODE LOGS:                        [Clear]        |
+| [0.123] Processing frame 42                      |
+| [0.145] Output sent                              |
++--------------------------------------------------+
+```
+
+---
+
 ## v0.1.9 (2026-01-09)
 
 ### Design: Node Detail Panel (Phase 7)
