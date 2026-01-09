@@ -9,11 +9,22 @@ makepad-widgets = { workspace = true }
 mviz-widgets = { path = "../mviz-widgets" }
 mviz-rerun-bridge = { path = "../mviz-rerun-bridge" }
 mviz-displays = { path = "../mviz-displays" }
+mviz-core = { path = "../mviz-core" }
 rerun = { workspace = true }
 log = { workspace = true }
 env_logger = { workspace = true }
 rand = { workspace = true }
 parking_lot = { workspace = true }
+dora-node-api = { workspace = true }
+crossbeam-channel = { workspace = true }
+eyre = { workspace = true }
+zenoh = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+
+[build-dependencies]
+cc = "1.0"
 
 [[bin]]
 name = "mviz"

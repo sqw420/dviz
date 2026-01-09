@@ -22,6 +22,9 @@ makepad-widgets = { git = "https://github.com/makepad/makepad", branch = "main" 
 # Rerun SDK for 3D visualization
 rerun = "0.28"
 
+# Dora framework
+dora-node-api = "0.3"
+
 # Math
 glam = { version = "0.25", features = ["serde"] }
 nalgebra = "0.33"
@@ -42,3 +45,6 @@ eyre = "0.6"
 thiserror = "1.0"
 crossbeam-channel = "0.5"
 rand = "0.8"
+
+# Zenoh for distributed communication
+zenoh = "1.0"

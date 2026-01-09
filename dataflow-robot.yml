@@ -1,0 +1,71 @@
+# MViz Robot Dataflow (Headless)
+#
+# This dataflow runs on the robot side WITHOUT a GUI.
+# It publishes sensor data via Zenoh for remote visualization.
+#
+# Usage:
+#   Robot side (headless):
+#     1. Build: cargo build --release -p mviz-rerun-bridge
+#     2. Start Dora: dora up
+#     3. Run: dora start dataflow-robot.yml --name robot
+#
+#   PC side (with display):
+#     1. Start mviz-shell: cargo run -p mviz-shell
+#     2. Click "Spawn Rerun" to open 3D viewer
+#     3. Click "Connect Zenoh" to receive robot data via LAN
+#
+# Communication:
+#   - Robot publishes to Zenoh topics: mviz/pose, mviz/state, mviz/imu, etc.
+#   - PC subscribes via Zenoh auto-discovery (multicast scouting)
+#   - Both machines must be on the same LAN
+
+nodes:
+  # Bicycle Model - Vehicle Simulator
+  - id: bicycle_model
+    operator:
+      python: /Users/nupylot/Public/dora-examples/examples/vehicle-path-following/src/bicycle_model.py
+      inputs:
+        tick: dora/timer/millis/20
+        steering_cmd: simple_planner/steering_cmd
+        throttle_cmd: simple_planner/throttle_cmd
+      outputs:
+        - sim_pose
+        - sim_state
+
+  # Simple Planner - Pure Pursuit Path Following
+  - id: simple_planner
+    operator:
+      python: /Users/nupylot/Public/dora-examples/examples/vehicle-path-following/src/simple_planner.py
+      inputs:
+        sim_pose: bicycle_model/sim_pose
+      outputs:
+        - steering_cmd
+        - throttle_cmd
+        - target_point
+        - waypoints
+
+  # IMU Synthesizer - Generate IMU from vehicle state
+  - id: imu_synthesizer
+    operator:
+      python: /Users/nupylot/Public/dora-examples/examples/vehicle-path-following/src/imu_synthesizer.py
+      inputs:
+        sim_state: bicycle_model/sim_state
+      outputs:
+        - imu_msg
+
+  # MViz Zenoh Bridge - Publish sensor data via Zenoh (NO RERUN)
+  # This node runs headless and only publishes data over the network
+  - id: mviz_zenoh_bridge
+    build: cargo build --release -p mviz-rerun-bridge
+    path: target/release/mviz-dora-bridge
+    inputs:
+      sim_pose: bicycle_model/sim_pose
+      sim_state: bicycle_model/sim_state
+      imu_msg: imu_synthesizer/imu_msg
+      target_point: simple_planner/target_point
+      waypoints: simple_planner/waypoints
+    env:
+      # Zenoh configuration (optional - uses auto-discovery by default)
+      # ZENOH_CONNECT: tcp/192.168.1.100:7447
+      ZENOH_TOPIC_PREFIX: mviz
+      RUST_LOG: info

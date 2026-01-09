@@ -1,0 +1,78 @@
+# MViz Dora Dataflow with Zenoh Bridge
+#
+# This dataflow connects MViz to the vehicle-path-following simulation.
+# The mviz-dora-bridge publishes sensor data via Zenoh for remote visualization.
+#
+# Usage (Same Machine):
+#   1. Build: cargo build --release -p mviz-rerun-bridge
+#   2. Start Dora: dora up
+#   3. Run dataflow: dora start dataflow.yml --name mviz
+#   4. In another terminal: cargo run -p mviz-shell
+#   5. Click "Spawn Rerun" then "Connect Zenoh"
+#
+# Usage (Robot + PC on LAN):
+#   Robot side:
+#     dora start dataflow-robot.yml --name robot
+#   PC side:
+#     cargo run -p mviz-shell
+#     Click "Spawn Rerun" then "Connect Zenoh"
+#
+# Requirements:
+#   - Dora CLI installed
+#   - Python nodes from dora-examples/vehicle-path-following
+#   - pip install dora-rs pyyaml numpy pyarrow
+
+nodes:
+  # Bicycle Model - Vehicle Simulator
+  # Receives steering/throttle commands, outputs vehicle pose
+  - id: bicycle_model
+    operator:
+      python: /Users/nupylot/Public/dora-examples/examples/vehicle-path-following/src/bicycle_model.py
+      inputs:
+        tick: dora/timer/millis/20
+        steering_cmd: simple_planner/steering_cmd
+        throttle_cmd: simple_planner/throttle_cmd
+      outputs:
+        - sim_pose
+        - sim_state
+
+  # Simple Planner - Pure Pursuit Path Following
+  # Receives vehicle pose, outputs steering/throttle commands
+  - id: simple_planner
+    operator:
+      python: /Users/nupylot/Public/dora-examples/examples/vehicle-path-following/src/simple_planner.py
+      inputs:
+        sim_pose: bicycle_model/sim_pose
+      outputs:
+        - steering_cmd
+        - throttle_cmd
+        - target_point
+        - waypoints
+
+  # IMU Synthesizer - Generate IMU from vehicle state
+  # Receives vehicle state, outputs synthetic IMU data
+  - id: imu_synthesizer
+    operator:
+      python: /Users/nupylot/Public/dora-examples/examples/vehicle-path-following/src/imu_synthesizer.py
+      inputs:
+        sim_state: bicycle_model/sim_state
+      outputs:
+        - imu_msg
+
+  # MViz Zenoh Bridge - Publish sensor data via Zenoh
+  # Receives all sensor data and publishes via Zenoh for remote visualization
+  - id: mviz_bridge
+    build: cargo build --release -p mviz-rerun-bridge
+    path: target/release/mviz-dora-bridge
+    inputs:
+      sim_pose: bicycle_model/sim_pose
+      sim_state: bicycle_model/sim_state
+      imu_msg: imu_synthesizer/imu_msg
+      target_point: simple_planner/target_point
+      waypoints: simple_planner/waypoints
+    env:
+      # Zenoh configuration
+      ZENOH_TOPIC_PREFIX: mviz
+      # Optional: specify router address for remote connection
+      # ZENOH_CONNECT: tcp/192.168.1.100:7447
+      RUST_LOG: info
