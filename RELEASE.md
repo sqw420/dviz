@@ -1,5 +1,16 @@
 # MViz Release Notes
 
+## v0.1.8 (2026-01-09)
+
+### Enhancement: Dynamic Node Filter Dropdown
+
+- DropDown labels now dynamically update when new nodes are discovered
+- Uses Makepad's `DropDownRef.set_labels()` API for runtime updates
+- Filter selection triggers immediate log content refresh
+- Level and node filter changes handled via `cx.capture_actions()`
+
+---
+
 ## v0.1.7 (2026-01-09)
 
 Phase 6: System Log Panel for Distributed Robotics Debugging
@@ -12,7 +23,7 @@ Real-time log collection and display from dora dataflow nodes over LAN via Zenoh
 
 - Collapsible panel with entry count display
 - Filter by log level (Debug, Info, Warn, Error)
-- Filter by node (dynamically populated)
+- Filter by node (dynamically populated via Zenoh discovery)
 - Text search across messages
 - Copy to clipboard and Clear buttons
 - Color-coded log entries

@@ -210,7 +210,6 @@ live_design! {
                 width: 80, height: 26
                 labels: ["All", "Debug", "Info", "Warn", "Error"]
                 values: [ALL, DEBUG, INFO, WARN, ERROR]
-                selected: 0
             }
 
             <View> { width: 12, height: 1 }
@@ -224,7 +223,6 @@ live_design! {
                 width: 120, height: 26
                 labels: ["All Nodes"]
                 values: [ALL]
-                selected: 0
             }
 
             <View> { width: 12, height: 1 }
@@ -304,7 +302,35 @@ pub struct LogPanel {
 
 impl Widget for LogPanel {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
-        self.view.handle_event(cx, event, scope);
+        // Capture actions from child widgets during event handling
+        let actions = cx.capture_actions(|cx| {
+            self.view.handle_event(cx, event, scope);
+        });
+
+        // Handle level filter dropdown changes
+        if let Some(index) = self.drop_down(id!(level_filter)).changed(&actions) {
+            self.level_filter = index;
+            self.apply_filters();
+            self.update_log_content(cx);
+            self.update_entry_count(cx);
+            cx.widget_action(self.widget_uid(), &scope.path, LogPanelAction::LevelFilterChanged(index));
+            self.redraw(cx);
+        }
+
+        // Handle node filter dropdown changes
+        if let Some(index) = self.drop_down(id!(node_filter)).changed(&actions) {
+            // index 0 = "All Nodes", index 1+ = specific node
+            self.node_filter = if index == 0 {
+                String::new()
+            } else {
+                self.discovered_nodes.get(index - 1).cloned().unwrap_or_default()
+            };
+            self.apply_filters();
+            self.update_log_content(cx);
+            self.update_entry_count(cx);
+            cx.widget_action(self.widget_uid(), &scope.path, LogPanelAction::NodeFilterChanged(self.node_filter.clone()));
+            self.redraw(cx);
+        }
 
         // Handle header click for collapse/expand
         let header = self.view(id!(header));
@@ -340,9 +366,6 @@ impl Widget for LogPanel {
             }
             _ => {}
         }
-
-        // Note: Level and node filter dropdown handling would require checking
-        // the DropDown widget's action pattern. For now, filters work on add_entry.
     }
 
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
@@ -515,16 +538,9 @@ impl LogPanel {
         let mut labels = vec!["All Nodes".to_string()];
         labels.extend(self.discovered_nodes.clone());
 
-        // Note: In a real implementation, we'd update the dropdown options dynamically
-        // For now, we just update the count label to indicate nodes are discovered
-        let nodes_text = if self.discovered_nodes.is_empty() {
-            "0 entries".to_string()
-        } else {
-            format!("{} nodes", self.discovered_nodes.len())
-        };
-        // This is a placeholder - actual dropdown update would need Makepad API support
-        let _ = nodes_text;
-        let _ = cx;
+        // Update dropdown labels dynamically using Makepad's DropDown API
+        self.drop_down(id!(node_filter)).set_labels(cx, labels);
+        self.redraw(cx);
     }
 
     /// Check if collapsed
