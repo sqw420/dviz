@@ -9,6 +9,26 @@
 - Filter selection triggers immediate log content refresh
 - Level and node filter changes handled via `cx.capture_actions()`
 
+### Tested Nodes Discovered
+
+From path-following dataflow:
+- `sim_pose` - Vehicle simulation pose publisher
+- `bicycle_model` - Bicycle model dynamics node
+- `sim_state` - Simulation state manager
+- `target_point` - Target waypoint generator
+- `imu_msg` - IMU sensor data publisher
+
+### Performance Metrics
+
+- Log entries accumulated: 700+ in test session
+- Zenoh messages processed: 57,000+
+- Real-time dropdown updates as nodes discovered
+
+### Documentation
+
+- Updated mviz_design.md Section 9.3 with implementation details
+- Updated mviz_plan.md Task 4.5 with execution results
+
 ---
 
 ## v0.1.7 (2026-01-09)

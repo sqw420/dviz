@@ -3025,6 +3025,85 @@ impl LogPanel {
 7. **Copy to Clipboard**: Export filtered logs as text
 8. **Auto-prune**: Maintains max 1000 entries to prevent memory issues
 
+#### Dynamic Node Filter Implementation (v0.1.8)
+
+The node filter dropdown dynamically updates when new nodes are discovered from the dataflow:
+
+```rust
+// In mviz-widgets/src/log_panel.rs
+
+impl LogPanel {
+    /// Updates the node filter dropdown with newly discovered nodes
+    fn update_node_filter_dropdown(&mut self, cx: &mut Cx) {
+        let mut labels = vec!["All Nodes".to_string()];
+        labels.extend(self.discovered_nodes.clone());
+        self.drop_down(id!(node_filter)).set_labels(cx, labels);
+        self.redraw(cx);
+    }
+}
+
+impl Widget for LogPanel {
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        // Capture actions from child widgets
+        let actions = cx.capture_actions(|cx| {
+            self.view.handle_event(cx, event, scope);
+        });
+
+        // Handle level filter changes
+        if let Some(index) = self.drop_down(id!(level_filter)).changed(&actions) {
+            self.level_filter = index;
+            self.apply_filters();
+            self.update_log_content(cx);
+            self.update_entry_count(cx);
+            cx.widget_action(self.widget_uid(), &scope.path,
+                LogPanelAction::LevelFilterChanged(index));
+            self.redraw(cx);
+        }
+
+        // Handle node filter changes
+        if let Some(index) = self.drop_down(id!(node_filter)).changed(&actions) {
+            self.node_filter = if index == 0 {
+                String::new()  // "All Nodes"
+            } else {
+                self.discovered_nodes.get(index - 1).cloned().unwrap_or_default()
+            };
+            self.apply_filters();
+            self.update_log_content(cx);
+            self.update_entry_count(cx);
+            cx.widget_action(self.widget_uid(), &scope.path,
+                LogPanelAction::NodeFilterChanged(self.node_filter.clone()));
+            self.redraw(cx);
+        }
+    }
+}
+```
+
+**Key Makepad APIs Used:**
+- `DropDownRef.set_labels(cx, labels)` - Dynamically updates dropdown options at runtime
+- `DropDownRef.changed(&actions) -> Option<usize>` - Returns selected index on change
+- `cx.capture_actions()` - Captures widget actions for processing
+
+#### Test Results (2026-01-09)
+
+Verified with path-following dataflow running on robot side:
+
+**Nodes Discovered:**
+- `sim_pose` - Vehicle simulation pose publisher
+- `bicycle_model` - Bicycle model dynamics node
+- `sim_state` - Simulation state manager
+- `target_point` - Target waypoint generator
+- `imu_msg` - IMU sensor data publisher
+
+**Log Entry Accumulation:**
+```
+Log entries: 1 → 51 → 101 → 151 → 201 → 251 → 301 → 351 → 401 → 451 → 501 → 551 → 601 → 651 → 701+
+```
+
+**Performance:**
+- 57,000+ Zenoh messages processed
+- Real-time node discovery and dropdown updates
+- Immediate filter response on selection change
+
 #### Integration in App
 
 ```rust

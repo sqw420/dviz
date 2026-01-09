@@ -852,6 +852,31 @@ Features:
 - [x] Panel is collapsible
 - [x] Color coding by log level
 
+**Execution Results (2026-01-09)**:
+
+Test Environment:
+- Robot side: Path-following dataflow with mviz-dora-bridge
+- PC side: mviz-shell with Zenoh connection
+
+Nodes Discovered via Zenoh:
+| Node ID | Description |
+|---------|-------------|
+| sim_pose | Vehicle simulation pose publisher |
+| bicycle_model | Bicycle model dynamics node |
+| sim_state | Simulation state manager |
+| target_point | Target waypoint generator |
+| imu_msg | IMU sensor data publisher |
+
+Log Entry Performance:
+- Entries accumulated: 1 → 51 → 101 → ... → 701+ (50 entries/batch)
+- Total Zenoh messages: 57,000+
+- Node dropdown updated in real-time as nodes were discovered
+- Filter changes applied immediately
+
+Implementation Notes:
+- v0.1.7: Initial LogPanel with display rendering
+- v0.1.8: Dynamic node filter using `DropDownRef.set_labels()` API
+
 ### Task 4.6: Display Manager (Dev A)
 **Duration**: 4 hours
 **Depends on**: Task 1.4
