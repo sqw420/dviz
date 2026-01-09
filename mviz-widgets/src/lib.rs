@@ -7,6 +7,7 @@
 //! - DisplaysPanel for managing visualization displays
 //! - PropertiesPanel for editing display properties
 //! - Toolbar for main application toolbar
+//! - LogPanel for system log display with filtering
 
 use makepad_widgets::*;
 
@@ -16,11 +17,13 @@ pub mod control_bar;
 pub mod displays_panel;
 pub mod properties_panel;
 pub mod toolbar;
+pub mod log_panel;
 
 // Re-exports
 pub use displays_panel::{DisplayInfo, DisplayListItem, DisplaysPanel, DisplaysPanelAction};
 pub use properties_panel::{Property, PropertyValue, PropertiesPanel};
 pub use toolbar::{FrameSelector, Toolbar};
+pub use log_panel::{LogPanel, LogPanelAction, LogDisplayEntry, LogPanelRef, LogPanelWidgetRefExt};
 
 pub fn live_design(cx: &mut Cx) {
     theme::live_design(cx);
@@ -29,4 +32,5 @@ pub fn live_design(cx: &mut Cx) {
     displays_panel::live_design(cx);
     properties_panel::live_design(cx);
     toolbar::live_design(cx);
+    log_panel::live_design(cx);
 }

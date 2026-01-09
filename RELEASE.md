@@ -1,5 +1,57 @@
 # MViz Release Notes
 
+## v0.1.7 (2026-01-09)
+
+Phase 6: System Log Panel for Distributed Robotics Debugging
+
+### New Feature: System Log Panel
+
+Real-time log collection and display from dora dataflow nodes over LAN via Zenoh.
+
+#### LogPanel Widget (mviz-widgets/src/log_panel.rs)
+
+- Collapsible panel with entry count display
+- Filter by log level (Debug, Info, Warn, Error)
+- Filter by node (dynamically populated)
+- Text search across messages
+- Copy to clipboard and Clear buttons
+- Color-coded log entries
+- Scrollable log content with newest entries first
+
+#### Protocol Extensions (mviz-core/zenoh_protocol.rs)
+
+- `LogLevel` enum: Debug, Info, Warn, Error with color() method
+- `LogEntry` struct: level, message, node_id, timestamp, metadata
+- `LogData` struct: JSON payload for log messages
+
+#### Bridge Updates (mviz-rerun-bridge/src/main.rs)
+
+- `publish_log()` helper function for sending log messages
+- Bridge startup/shutdown log messages
+- Node message count tracking with periodic status logs
+- Vehicle state updates logged every 50 frames
+- First message notification per source node
+
+#### Zenoh Receiver Updates (mviz-shell/src/zenoh_receiver.rs)
+
+- `ZenohMessage::Log(LogEntry)` - system log entry
+- `ZenohMessage::NodeDiscovered(String)` - new node ID
+- `discovered_nodes: Arc<RwLock<HashSet<String>>>` - dynamic tracking
+
+#### App Integration (mviz-shell/src/app.rs)
+
+- Log entries processed in `process_zenoh_messages()`
+- Node discovery tracking with HashSet
+- LogPanel actions: Copy, Clear, ToggleCollapsed
+
+### Documentation
+
+- Added Section 9.3 to mviz_design.md with full architecture
+- Added Task 4.5 to mviz_plan.md with acceptance criteria
+- Updated dependency graph
+
+---
+
 ## v0.1.5 (2026-01-08)
 
 Phase 5: Zenoh Universal Protocol for LAN Visualization

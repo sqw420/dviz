@@ -20,6 +20,7 @@
 //! - `text` - Text annotations
 //! - `scalar` - Time-series scalar values
 //! - `image` - Images (binary payload)
+//! - `log` - System log entries from nodes
 
 use serde::{Deserialize, Serialize};
 
@@ -166,6 +167,125 @@ pub struct TextData {
 pub struct ScalarData {
     /// The scalar value
     pub value: f64,
+}
+
+// ============================================================================
+// System Log Types
+// ============================================================================
+
+/// Log level for system messages
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum LogLevel {
+    /// Debug information
+    Debug,
+    /// General information
+    #[default]
+    Info,
+    /// Warning messages
+    Warn,
+    /// Error messages
+    Error,
+}
+
+impl LogLevel {
+    /// Parse log level from string (case-insensitive)
+    pub fn from_str(s: &str) -> Self {
+        match s.to_uppercase().as_str() {
+            "DEBUG" => Self::Debug,
+            "INFO" => Self::Info,
+            "WARN" | "WARNING" => Self::Warn,
+            "ERROR" | "ERR" => Self::Error,
+            _ => Self::Info,
+        }
+    }
+
+    /// Get display name
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Debug => "DEBUG",
+            Self::Info => "INFO",
+            Self::Warn => "WARN",
+            Self::Error => "ERROR",
+        }
+    }
+
+    /// Get color for UI display [r, g, b, a]
+    pub fn color(&self) -> [u8; 4] {
+        match self {
+            Self::Debug => [128, 128, 128, 255], // Gray
+            Self::Info => [100, 180, 255, 255],  // Blue
+            Self::Warn => [255, 200, 50, 255],   // Yellow/Orange
+            Self::Error => [255, 80, 80, 255],   // Red
+        }
+    }
+}
+
+impl std::fmt::Display for LogLevel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
+/// System log entry from a dora node
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LogEntry {
+    /// Log level
+    pub level: LogLevel,
+    /// Log message content
+    pub message: String,
+    /// Source node ID (e.g., "bicycle_model", "simple_planner")
+    pub node_id: String,
+    /// Timestamp in seconds since dataflow start
+    #[serde(default)]
+    pub timestamp: f64,
+    /// Optional metadata key-value pairs
+    #[serde(default)]
+    pub metadata: std::collections::HashMap<String, String>,
+}
+
+impl LogEntry {
+    /// Create a new log entry
+    pub fn new(level: LogLevel, message: impl Into<String>, node_id: impl Into<String>) -> Self {
+        Self {
+            level,
+            message: message.into(),
+            node_id: node_id.into(),
+            timestamp: 0.0,
+            metadata: std::collections::HashMap::new(),
+        }
+    }
+
+    /// Create with timestamp
+    pub fn with_timestamp(mut self, timestamp: f64) -> Self {
+        self.timestamp = timestamp;
+        self
+    }
+
+    /// Format as display string for UI
+    pub fn format_display(&self) -> String {
+        format!(
+            "[{:.2}s] [{}] [{}] {}",
+            self.timestamp,
+            self.level.as_str(),
+            self.node_id,
+            self.message
+        )
+    }
+}
+
+/// Log data payload in MvizMessage
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LogData {
+    /// Log level
+    pub level: String,
+    /// Log message
+    pub message: String,
+    /// Source node ID
+    pub node_id: String,
+    /// Optional metadata
+    #[serde(default)]
+    pub metadata: Option<std::collections::HashMap<String, String>>,
 }
 
 /// Binary payload formats

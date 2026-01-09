@@ -2819,6 +2819,281 @@ impl Widget for DisplayListItem {
 }
 ```
 
+### 9.3 System Log Panel Widget (`mviz-widgets/src/log_panel.rs`)
+
+The System Log Panel displays log messages from robot nodes over Zenoh, with dynamic node discovery and filtering.
+
+#### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     System Log Panel                         │
+├─────────────────────────────────────────────────────────────┤
+│  [▼] System Log                    [12 entries] [Copy][Clear]│
+├─────────────────────────────────────────────────────────────┤
+│  Level: [All ▼]    Node: [All Nodes ▼]    Search: [____]    │
+├─────────────────────────────────────────────────────────────┤
+│  0.12s [INFO] [bicycle_model] Initialized with dt=0.02      │
+│  0.15s [INFO] [simple_planner] Path computed: 42 waypoints  │
+│  0.23s [WARN] [localization] GPS signal weak                │
+│  1.05s [ERROR] [motor_ctrl] Overcurrent detected            │
+│  ...                                                         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Protocol (Zenoh)
+
+Nodes publish log messages to `mviz/logs` topic using the universal message format:
+
+```json
+{
+  "type": "log",
+  "timestamp": 1.234,
+  "data": {
+    "level": "INFO",
+    "message": "Motor initialized successfully",
+    "node_id": "motor_controller",
+    "metadata": {"motor_id": "left_wheel"}
+  }
+}
+```
+
+#### Core Types
+
+```rust
+// In mviz-core/src/zenoh_protocol.rs
+
+/// Log level for system messages
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum LogLevel {
+    Debug,
+    #[default]
+    Info,
+    Warn,
+    Error,
+}
+
+impl LogLevel {
+    pub fn from_str(s: &str) -> Self;
+    pub fn as_str(&self) -> &'static str;
+    pub fn color(&self) -> [u8; 4];  // RGBA for UI display
+}
+
+/// System log entry from a dora node
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LogEntry {
+    pub level: LogLevel,
+    pub message: String,
+    pub node_id: String,
+    #[serde(default)]
+    pub timestamp: f64,
+    #[serde(default)]
+    pub metadata: HashMap<String, String>,
+}
+
+/// Log data payload in MvizMessage
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LogData {
+    pub level: String,
+    pub message: String,
+    pub node_id: String,
+    #[serde(default)]
+    pub metadata: Option<HashMap<String, String>>,
+}
+```
+
+#### Zenoh Receiver Updates
+
+```rust
+// In mviz-shell/src/zenoh_receiver.rs
+
+pub enum ZenohMessage {
+    Data(VisData),
+    Log(LogEntry),           // System log entry
+    NodeDiscovered(String),  // New node ID discovered
+    Connected,
+    Disconnected(String),
+    Status(String),
+}
+
+pub struct ZenohReceiver {
+    // ... existing fields ...
+    discovered_nodes: Arc<RwLock<HashSet<String>>>,  // Dynamic node tracking
+}
+```
+
+#### Widget Implementation
+
+```rust
+use makepad_widgets::*;
+
+live_design! {
+    pub LogPanel = {{LogPanel}} <RoundedView> {
+        width: Fill, height: 300
+        flow: Down
+
+        // Header with collapse, copy, clear buttons
+        header = <View> {
+            collapse_icon = <View> { /* triangle icon */ }
+            <Label> { text: "System Log" }
+            entry_count = <Label> { text: "0 entries" }
+            copy_btn = <Button> { text: "Copy" }
+            clear_btn = <Button> { text: "Clear" }
+        }
+
+        // Filter row
+        filter_row = <View> {
+            <Label> { text: "Level:" }
+            level_filter = <DropDown> {
+                labels: ["All", "Debug", "Info", "Warn", "Error"]
+            }
+            <Label> { text: "Node:" }
+            node_filter = <DropDown> {
+                labels: ["All Nodes"]  // Dynamically populated
+            }
+            <Label> { text: "Search:" }
+            search_input = <TextInput> {}
+        }
+
+        // Scrollable log list
+        log_scroll = <ScrollYView> {
+            log_list = <View> { flow: Down }
+        }
+    }
+
+    pub LogEntryItem = <View> {
+        timestamp = <Label> {}
+        level_badge = <View> { level_text = <Label> {} }
+        node_name = <Label> {}
+        message = <Label> {}
+    }
+}
+
+/// Actions emitted by LogPanel
+#[derive(Clone, Debug, DefaultNone)]
+pub enum LogPanelAction {
+    None,
+    CopyClicked,
+    ClearClicked,
+    ToggleCollapsed,
+    LevelFilterChanged(usize),
+    NodeFilterChanged(String),
+    SearchChanged(String),
+}
+
+/// State for a log entry in the display
+#[derive(Clone, Debug)]
+pub struct LogDisplayEntry {
+    pub timestamp: f64,
+    pub level: u8,       // 0=debug, 1=info, 2=warn, 3=error
+    pub level_str: String,
+    pub node_id: String,
+    pub message: String,
+}
+
+#[derive(Live, LiveHook, Widget)]
+pub struct LogPanel {
+    #[deref] view: View,
+    #[rust] collapsed: bool,
+    #[rust] entries: Vec<LogDisplayEntry>,
+    #[rust] filtered_entries: Vec<usize>,
+    #[rust] level_filter: usize,      // 0=all, 1-4=specific level
+    #[rust] node_filter: String,      // "" = all nodes
+    #[rust] search_text: String,
+    #[rust] discovered_nodes: Vec<String>,
+    #[rust] max_entries: usize,       // Default: 1000
+}
+
+impl LogPanel {
+    pub fn add_entry(&mut self, cx: &mut Cx, entry: LogDisplayEntry);
+    pub fn clear(&mut self, cx: &mut Cx);
+    pub fn set_discovered_nodes(&mut self, cx: &mut Cx, nodes: Vec<String>);
+    pub fn get_filtered_text(&self) -> String;
+    fn apply_filters(&mut self);
+}
+```
+
+#### Features
+
+1. **Dynamic Node Discovery**: Nodes appear in the filter dropdown as they send logs
+2. **Multi-level Filtering**: Filter by Debug/Info/Warn/Error levels
+3. **Node Filtering**: Filter logs by specific node ID
+4. **Text Search**: Search within log messages and node IDs
+5. **Color Coding**: Visual distinction by log level (gray/blue/yellow/red)
+6. **Collapsible**: Toggle panel visibility
+7. **Copy to Clipboard**: Export filtered logs as text
+8. **Auto-prune**: Maintains max 1000 entries to prevent memory issues
+
+#### Integration in App
+
+```rust
+// In mviz-shell/src/app.rs
+
+use mviz_widgets::{LogPanelAction, LogDisplayEntry, LogPanelWidgetRefExt};
+use mviz_core::zenoh_protocol::LogLevel;
+
+#[derive(Live, LiveHook)]
+pub struct App {
+    // ... existing fields ...
+    #[rust] discovered_nodes: HashSet<String>,
+    #[rust] log_entry_count: u64,
+}
+
+impl App {
+    fn process_zenoh_messages(&mut self, cx: &mut Cx) {
+        while let Some(msg) = receiver.try_recv() {
+            match msg {
+                ZenohMessage::Log(log_entry) => {
+                    let display_entry = LogDisplayEntry {
+                        timestamp: log_entry.timestamp,
+                        level: match log_entry.level {
+                            LogLevel::Debug => 0,
+                            LogLevel::Info => 1,
+                            LogLevel::Warn => 2,
+                            LogLevel::Error => 3,
+                        },
+                        level_str: log_entry.level.as_str().to_string(),
+                        node_id: log_entry.node_id.clone(),
+                        message: log_entry.message,
+                    };
+
+                    // Update discovered nodes
+                    if self.discovered_nodes.insert(log_entry.node_id.clone()) {
+                        let nodes: Vec<String> = self.discovered_nodes.iter().cloned().collect();
+                        self.ui.log_panel(id!(log_panel)).set_discovered_nodes(cx, nodes);
+                    }
+
+                    self.ui.log_panel(id!(log_panel)).add_entry(cx, display_entry);
+                }
+                ZenohMessage::NodeDiscovered(node_id) => {
+                    if self.discovered_nodes.insert(node_id) {
+                        let nodes: Vec<String> = self.discovered_nodes.iter().cloned().collect();
+                        self.ui.log_panel(id!(log_panel)).set_discovered_nodes(cx, nodes);
+                    }
+                }
+                // ... other message types
+            }
+        }
+    }
+
+    fn handle_actions(&mut self, cx: &mut Cx, actions: &Actions) {
+        for action in actions {
+            match action.as_widget_action().cast::<LogPanelAction>() {
+                LogPanelAction::CopyClicked => {
+                    let text = self.ui.log_panel(id!(log_panel)).get_filtered_text();
+                    cx.copy_to_clipboard(&text);
+                }
+                LogPanelAction::ClearClicked => {
+                    self.ui.log_panel(id!(log_panel)).clear(cx);
+                }
+                _ => {}
+            }
+        }
+    }
+}
+```
+
 ---
 
 ## 10. URDF Integration

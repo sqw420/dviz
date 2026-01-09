@@ -6,11 +6,12 @@
 use makepad_widgets::*;
 use mviz_rerun_bridge::{RerunBridge, RerunConfig, SensorSimulator};
 use mviz_displays::laser_scan::simulate_laser_scan;
-use mviz_widgets::DisplaysPanelAction;
+use mviz_widgets::{DisplaysPanelAction, LogPanelAction, LogDisplayEntry, LogPanelWidgetRefExt};
 use crate::dora_receiver::{DoraReceiver, DoraMessage, DoraData};
 use crate::zenoh_receiver::{ZenohReceiver, ZenohMessage, VisData, parse_points_xyz_f32};
-use mviz_core::zenoh_protocol::{Points3DData, Boxes3DData, Arrows3DData, LineStrips3DData, Transform3DData, ScalarData, binary_formats};
+use mviz_core::zenoh_protocol::{Points3DData, Boxes3DData, Arrows3DData, LineStrips3DData, Transform3DData, ScalarData, LogLevel, binary_formats};
 use std::io::Write;
+use std::collections::HashSet;
 
 fn debug_log(msg: &str) {
     // Print to stderr for terminal visibility
@@ -40,6 +41,7 @@ live_design! {
     use mviz_widgets::displays_panel::DisplaysPanel;
     use mviz_widgets::properties_panel::PropertiesPanel;
     use mviz_widgets::toolbar::Toolbar;
+    use mviz_widgets::log_panel::LogPanel;
 
     // App icon
     MVIZ_ICON = dep("crate://self/resources/icons/viz.svg")
@@ -283,13 +285,18 @@ live_design! {
                             }
                         }
 
-                        // RIGHT PANEL - Properties
+                        // RIGHT PANEL - Properties + System Log
                         right_panel = <View> {
                             width: 280, height: Fill
                             flow: Down
                             spacing: 8
 
                             properties_panel = <PropertiesPanel> {
+                                width: Fill, height: 200
+                            }
+
+                            // System Log Panel
+                            log_panel = <LogPanel> {
                                 width: Fill, height: Fill
                             }
                         }
@@ -332,6 +339,9 @@ pub struct App {
     #[rust] zenoh_receiver: Option<ZenohReceiver>,
     #[rust] zenoh_connected: bool,
     #[rust] zenoh_message_count: u64,
+    // System log state
+    #[rust] discovered_nodes: HashSet<String>,
+    #[rust] log_entry_count: u64,
 }
 
 impl LiveRegister for App {
@@ -359,6 +369,9 @@ impl MatchEvent for App {
         self.zenoh_receiver = None;
         self.zenoh_connected = false;
         self.zenoh_message_count = 0;
+        // System log state
+        self.discovered_nodes = HashSet::new();
+        self.log_entry_count = 0;
         // Request first frame
         cx.start_interval(0.02); // 50 Hz update rate
         debug_log("Timer started at 50Hz");
@@ -394,6 +407,23 @@ impl MatchEvent for App {
         for action in actions {
             if let DisplaysPanelAction::AddDisplayClicked = action.as_widget_action().cast() {
                 self.add_display(cx);
+            }
+        }
+
+        // Handle LogPanel actions
+        for action in actions {
+            match action.as_widget_action().cast::<LogPanelAction>() {
+                LogPanelAction::CopyClicked => {
+                    let log_text = self.ui.log_panel(id!(log_panel)).get_filtered_text();
+                    cx.copy_to_clipboard(&log_text);
+                    debug_log("Copied logs to clipboard");
+                }
+                LogPanelAction::ClearClicked => {
+                    self.ui.log_panel(id!(log_panel)).clear(cx);
+                    self.log_entry_count = 0;
+                    debug_log("Cleared system log");
+                }
+                _ => {}
             }
         }
     }
@@ -1362,6 +1392,48 @@ impl App {
                     // Update time display
                     self.ui.label(id!(time_label)).set_text(cx,
                         &format!("{:.2}s", vis_data.timestamp));
+                }
+
+                ZenohMessage::Log(log_entry) => {
+                    self.log_entry_count += 1;
+
+                    // Convert to display entry
+                    let level_num = match log_entry.level {
+                        LogLevel::Debug => 0,
+                        LogLevel::Info => 1,
+                        LogLevel::Warn => 2,
+                        LogLevel::Error => 3,
+                    };
+                    let display_entry = LogDisplayEntry {
+                        timestamp: log_entry.timestamp,
+                        level: level_num,
+                        level_str: log_entry.level.as_str().to_string(),
+                        node_id: log_entry.node_id.clone(),
+                        message: log_entry.message,
+                    };
+
+                    // Track discovered node
+                    if self.discovered_nodes.insert(log_entry.node_id.clone()) {
+                        debug_log(&format!("Discovered node from log: {}", log_entry.node_id));
+                        // Update log panel with new node list
+                        let nodes: Vec<String> = self.discovered_nodes.iter().cloned().collect();
+                        self.ui.log_panel(id!(log_panel)).set_discovered_nodes(cx, nodes);
+                    }
+
+                    // Add to log panel
+                    self.ui.log_panel(id!(log_panel)).add_entry(cx, display_entry);
+
+                    if self.log_entry_count % 50 == 1 {
+                        debug_log(&format!("Log entries: {}", self.log_entry_count));
+                    }
+                }
+
+                ZenohMessage::NodeDiscovered(node_id) => {
+                    if self.discovered_nodes.insert(node_id.clone()) {
+                        debug_log(&format!("Node discovered: {}", node_id));
+                        let nodes: Vec<String> = self.discovered_nodes.iter().cloned().collect();
+                        self.ui.log_panel(id!(log_panel)).set_discovered_nodes(cx, nodes);
+                    }
                 }
             }
         }

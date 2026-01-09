@@ -785,7 +785,74 @@ ToolbarWidget:
 Emit actions for button clicks."
 ```
 
-### Task 4.5: Display Manager (Dev A)
+### Task 4.5: System Log Panel Widget (Dev G) [COMPLETED]
+**Duration**: 6 hours
+**Depends on**: Task 4.1
+**Status**: Implemented in mviz-widgets/src/log_panel.rs
+
+```
+AI Prompt:
+"Create system log panel in mviz-widgets/src/log_panel.rs:
+Displays log messages from robot nodes over Zenoh with dynamic filtering.
+
+Core Types (in mviz-core/src/zenoh_protocol.rs):
+- LogLevel enum: Debug, Info, Warn, Error with color() method
+- LogEntry struct: level, message, node_id, timestamp, metadata
+- LogData struct: JSON payload for log messages
+
+Zenoh Receiver Updates (in mviz-shell/src/zenoh_receiver.rs):
+- ZenohMessage::Log(LogEntry) - system log entry
+- ZenohMessage::NodeDiscovered(String) - new node ID
+- discovered_nodes: Arc<RwLock<HashSet<String>>> - dynamic tracking
+
+Widget (live_design! macro):
+- LogPanel with collapsible header, entry count, Copy/Clear buttons
+- Filter row: Level dropdown, Node dropdown (dynamic), Search input
+- ScrollYView with log_list for entries
+- LogEntryItem: timestamp, level badge, node name, message
+
+LogPanelAction enum:
+- CopyClicked, ClearClicked, ToggleCollapsed
+- LevelFilterChanged(usize), NodeFilterChanged(String), SearchChanged(String)
+
+LogDisplayEntry struct:
+- timestamp: f64, level: u8, level_str, node_id, message
+
+LogPanel struct (#[derive(Live, LiveHook, Widget)]):
+- collapsed: bool, entries: Vec<LogDisplayEntry>
+- filtered_entries: Vec<usize>, level_filter: usize
+- node_filter: String, search_text: String
+- discovered_nodes: Vec<String>, max_entries: usize (1000)
+
+Methods:
+- add_entry(cx, entry) - add and auto-prune
+- clear(cx) - clear all entries
+- set_discovered_nodes(cx, nodes) - update node filter dropdown
+- get_filtered_text() -> String - for clipboard copy
+- apply_filters() - recompute filtered_entries
+
+Features:
+1. Dynamic node discovery from log messages
+2. Multi-level filtering (All/Debug/Info/Warn/Error)
+3. Node-specific filtering
+4. Text search in messages and node IDs
+5. Color-coded entries (gray/blue/yellow/red)
+6. Collapsible panel
+7. Copy to clipboard
+8. Auto-prune at 1000 entries"
+```
+
+**Acceptance Criteria**:
+- [x] Log messages displayed from Zenoh `mviz/**` topics with type="log"
+- [x] Dynamic node discovery populates filter dropdown
+- [x] Level filtering works correctly
+- [x] Search filtering works
+- [x] Copy exports filtered text
+- [x] Clear removes all entries
+- [x] Panel is collapsible
+- [x] Color coding by log level
+
+### Task 4.6: Display Manager (Dev A)
 **Duration**: 4 hours
 **Depends on**: Task 1.4
 
@@ -808,7 +875,7 @@ Methods:
 Thread-safe with parking_lot::RwLock."
 ```
 
-### Task 4.6: Configuration Save/Load (Dev A)
+### Task 4.7: Configuration Save/Load (Dev A)
 **Duration**: 3 hours
 **Depends on**: Task 1.5, 4.5
 
@@ -1063,9 +1130,10 @@ Task 0.1 (Setup)
 │                                                    │
 │  Task 4.1 ──┬──▶ Task 4.2 (DisplaysPanel)         │
 │  (AppShell) ├──▶ Task 4.3 (PropertiesPanel)       │
-│             └──▶ Task 4.4 (Toolbar)               │
+│             ├──▶ Task 4.4 (Toolbar)               │
+│             └──▶ Task 4.5 (SystemLogPanel) ✓      │
 │                                                    │
-│  Task 4.5 ──▶ Task 4.6                            │
+│  Task 4.6 ──▶ Task 4.7                            │
 │  (Manager)    (Config)                             │
 └───────────────────────────────────────────────────┘
                     │

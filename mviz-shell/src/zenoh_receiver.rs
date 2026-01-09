@@ -4,11 +4,13 @@
 //! to be logged to Rerun. It doesn't know about specific applications.
 
 use crossbeam_channel::{Receiver, Sender, bounded};
-use mviz_core::zenoh_protocol::{MvizMessage, parse_message};
+use mviz_core::zenoh_protocol::{MvizMessage, LogData, LogEntry, LogLevel, parse_message};
+use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread::{self, JoinHandle};
 use std::io::Write;
+use parking_lot::RwLock;
 
 fn debug_log(msg: &str) {
     if let Ok(mut f) = std::fs::OpenOptions::new()
@@ -47,6 +49,10 @@ pub struct VisData {
 pub enum ZenohMessage {
     /// Visualization data received
     Data(VisData),
+    /// System log entry received
+    Log(LogEntry),
+    /// Node discovered (new node_id seen in logs)
+    NodeDiscovered(String),
     /// Connected to Zenoh
     Connected,
     /// Disconnected or error
@@ -60,6 +66,8 @@ pub struct ZenohReceiver {
     rx: Receiver<ZenohMessage>,
     _handle: JoinHandle<()>,
     running: Arc<AtomicBool>,
+    /// Discovered node IDs (for dynamic filtering)
+    discovered_nodes: Arc<RwLock<HashSet<String>>>,
 }
 
 impl ZenohReceiver {
@@ -69,6 +77,8 @@ impl ZenohReceiver {
         let running = Arc::new(AtomicBool::new(true));
         let running_clone = running.clone();
         let prefix = topic_prefix.unwrap_or_else(|| "mviz".to_string());
+        let discovered_nodes = Arc::new(RwLock::new(HashSet::new()));
+        let discovered_nodes_clone = discovered_nodes.clone();
 
         let handle = thread::spawn(move || {
             let rt = tokio::runtime::Builder::new_multi_thread()
@@ -77,14 +87,20 @@ impl ZenohReceiver {
                 .build()
                 .expect("Failed to create tokio runtime");
 
-            rt.block_on(Self::run_zenoh_loop(tx, running_clone, connect_addr, prefix));
+            rt.block_on(Self::run_zenoh_loop(tx, running_clone, connect_addr, prefix, discovered_nodes_clone));
         });
 
         Self {
             rx,
             _handle: handle,
             running,
+            discovered_nodes,
         }
+    }
+
+    /// Get the list of discovered node IDs
+    pub fn discovered_nodes(&self) -> Vec<String> {
+        self.discovered_nodes.read().iter().cloned().collect()
     }
 
     /// Try to receive the next message (non-blocking)
@@ -108,6 +124,7 @@ impl ZenohReceiver {
         running: Arc<AtomicBool>,
         connect_addr: Option<String>,
         topic_prefix: String,
+        discovered_nodes: Arc<RwLock<HashSet<String>>>,
     ) {
         log::info!("ZenohReceiver: Starting universal receiver...");
         let _ = tx.send(ZenohMessage::Status("Connecting to Zenoh...".to_string()));
@@ -186,15 +203,41 @@ impl ZenohReceiver {
                         debug_log(&format!("Parsed {} @ {}, binary={:?}",
                             msg.msg_type, entity_path, binary.map(|b| b.len())));
 
-                        let vis_data = VisData {
-                            entity_path,
-                            msg_type: msg.msg_type.clone(),
-                            timestamp: msg.timestamp.unwrap_or(0.0),
-                            message: msg,
-                            binary: binary.map(|b| b.to_vec()),
-                        };
+                        // Handle log messages specially
+                        if msg.msg_type == "log" {
+                            if let Ok(log_data) = serde_json::from_value::<LogData>(msg.data.clone()) {
+                                let log_entry = LogEntry {
+                                    level: LogLevel::from_str(&log_data.level),
+                                    message: log_data.message,
+                                    node_id: log_data.node_id.clone(),
+                                    timestamp: msg.timestamp.unwrap_or(0.0),
+                                    metadata: log_data.metadata.unwrap_or_default(),
+                                };
 
-                        let _ = tx.send(ZenohMessage::Data(vis_data));
+                                // Track discovered nodes
+                                let is_new_node = {
+                                    let mut nodes = discovered_nodes.write();
+                                    nodes.insert(log_data.node_id.clone())
+                                };
+                                if is_new_node {
+                                    debug_log(&format!("Discovered new node: {}", log_data.node_id));
+                                    let _ = tx.send(ZenohMessage::NodeDiscovered(log_data.node_id));
+                                }
+
+                                let _ = tx.send(ZenohMessage::Log(log_entry));
+                            }
+                        } else {
+                            // Regular visualization data
+                            let vis_data = VisData {
+                                entity_path,
+                                msg_type: msg.msg_type.clone(),
+                                timestamp: msg.timestamp.unwrap_or(0.0),
+                                message: msg,
+                                binary: binary.map(|b| b.to_vec()),
+                            };
+
+                            let _ = tx.send(ZenohMessage::Data(vis_data));
+                        }
 
                         if frame_count % 100 == 0 {
                             debug_log(&format!("Received {} messages total", frame_count));

@@ -23,6 +23,7 @@
 //! - `linestrips3d` - Line strips (JSON)
 //! - `transform3d` - Coordinate transforms (JSON)
 //! - `scalar` - Time-series values (JSON)
+//! - `log` - System log messages (JSON)
 //!
 //! ## Environment Variables
 //! - `ZENOH_CONNECT`: Zenoh router address (default: auto-discovery)
@@ -33,6 +34,31 @@ use dora_node_api::{DoraNode, Event, arrow::array::Float32Array};
 use eyre::Result;
 use mviz_core::zenoh_protocol::*;
 use std::env;
+use std::collections::HashMap;
+
+/// Publish a log message to Zenoh
+async fn publish_log(
+    session: &zenoh::Session,
+    topic_prefix: &str,
+    timestamp: f64,
+    level: &str,
+    message: &str,
+    node_id: &str,
+) {
+    let log_msg = MvizMessage {
+        msg_type: "log".to_string(),
+        timestamp: Some(timestamp),
+        data: serde_json::json!({
+            "level": level,
+            "message": message,
+            "node_id": node_id,
+        }),
+        format: None,
+        count: None,
+    };
+    let topic = format!("{}/logs", topic_prefix);
+    let _ = session.put(&topic, serialize_message(&log_msg, None)).await;
+}
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 1)]
 async fn main() -> Result<()> {
@@ -62,6 +88,9 @@ async fn main() -> Result<()> {
     log::info!("Zenoh session opened successfully");
     log::info!("Topic prefix: {}", topic_prefix);
 
+    // Publish bridge startup log
+    publish_log(&session, &topic_prefix, 0.0, "INFO", "MViz bridge started, waiting for data...", "mviz_bridge").await;
+
     // Initialize Dora node
     let (_node, mut events) = DoraNode::init_from_env()?;
     log::info!("Dora node initialized, waiting for events...");
@@ -71,6 +100,9 @@ async fn main() -> Result<()> {
 
     // Accumulate trajectory from odometry poses
     let mut trajectory_points: Vec<[f32; 3]> = Vec::new();
+
+    // Track message counts per source node for logging
+    let mut node_msg_counts: HashMap<String, u64> = HashMap::new();
 
     // Main event loop - handle ANY input generically
     while let Some(event) = events.recv() {
@@ -82,6 +114,25 @@ async fn main() -> Result<()> {
                 let timestamp = start_time.elapsed().as_secs_f64();
                 log::info!("Input event: id={}, data_type={}", input_id, data.data_type());
 
+                // Extract source node from input_id (format: "node_name/output_name" or just "output_name")
+                let source_node = input_id.split('/').next().unwrap_or(input_id);
+
+                // Track message count per source node
+                let count = node_msg_counts.entry(source_node.to_string()).or_insert(0);
+                *count += 1;
+
+                // Publish log for first message from each node
+                if *count == 1 {
+                    let msg = format!("First message received from {}", source_node);
+                    publish_log(&session, &topic_prefix, timestamp, "INFO", &msg, source_node).await;
+                }
+
+                // Publish periodic status logs (every 100 messages per node)
+                if *count % 100 == 0 {
+                    let msg = format!("Processed {} messages", count);
+                    publish_log(&session, &topic_prefix, timestamp, "DEBUG", &msg, source_node).await;
+                }
+
                 // Try to extract as Float32Array (most common for robotics)
                 let float_data: Option<Vec<f32>> = data
                     .as_any()
@@ -90,6 +141,8 @@ async fn main() -> Result<()> {
 
                 let Some(values) = float_data else {
                     log::warn!("Skipping non-float input: {}, type: {}", input_id, data.data_type());
+                    let msg = format!("Skipping non-float data: {}", data.data_type());
+                    publish_log(&session, &topic_prefix, timestamp, "WARN", &msg, source_node).await;
                     continue;
                 };
                 log::info!("Processing {} with {} float values", input_id, values.len());
@@ -122,7 +175,14 @@ async fn main() -> Result<()> {
                     // Vehicle pose [x, y, theta, velocity] -> boxes3d + trajectory
                     "sim_pose" | "vehicle_pose" | "pose" if values.len() >= 3 => {
                         let (x, y, theta) = (values[0], values[1], values[2]);
-                        let _velocity = if values.len() >= 4 { values[3] } else { 0.0 };
+                        let velocity = if values.len() >= 4 { values[3] } else { 0.0 };
+
+                        // Log vehicle state periodically
+                        if *count % 50 == 1 {
+                            let msg = format!("Vehicle at ({:.2}, {:.2}), heading {:.1}°, v={:.2}m/s",
+                                x, y, theta.to_degrees(), velocity);
+                            publish_log(&session, &topic_prefix, timestamp, "INFO", &msg, "bicycle_model").await;
+                        }
 
                         // Add to accumulated trajectory
                         trajectory_points.push([x, y, 0.05]);
@@ -254,6 +314,12 @@ async fn main() -> Result<()> {
                             continue;
                         }
 
+                        // Log waypoint updates periodically
+                        if *count % 100 == 1 {
+                            let msg = format!("Path updated with {} waypoints", points.len());
+                            publish_log(&session, &topic_prefix, timestamp, "INFO", &msg, "simple_planner").await;
+                        }
+
                         let header = MvizMessage {
                             msg_type: "linestrips3d".to_string(),
                             timestamp: Some(timestamp),
@@ -382,6 +448,9 @@ async fn main() -> Result<()> {
 
             Event::Stop(_) => {
                 log::info!("Received stop signal");
+                let timestamp = start_time.elapsed().as_secs_f64();
+                let msg = format!("Bridge stopping after {} total frames", frame_count);
+                publish_log(&session, &topic_prefix, timestamp, "INFO", &msg, "mviz_bridge").await;
                 break;
             }
 
