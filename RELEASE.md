@@ -1,5 +1,60 @@
 # MViz Release Notes
 
+## v0.1.9 (2026-01-09)
+
+### Design: Node Detail Panel (Phase 7)
+
+Complete design specification for the Node Detail Panel widget, which will replace the center panel with an interactive dataflow node inspector.
+
+#### Layout
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ NODE: [dropdown]                                             [●]   │
+├─────────────────────────────────────────────────────────────────────┤
+│ INPUTS:                          │ OUTPUTS:                        │
+│  • port (from: source/output)    │  • port → [dest1, dest2]       │
+├─────────────────────────────────────────────────────────────────────┤
+│ LOGS:                                                  [Clear]     │
+│ [timestamp] message...                                              │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+#### New Protocol Types (mviz-core/src/zenoh_protocol.rs)
+
+- `NodeInput`: port name and source reference
+- `NodeOutput`: port name and destination nodes list
+- `NodeDefinition`: complete node definition from dataflow YAML
+- `NodeStatus`: Running, Stopped, Error, Unknown
+- `DataflowDefinition`: full dataflow graph with all nodes
+
+#### New Zenoh Messages
+
+- `ZenohMessage::DataflowDefinition` - full dataflow graph
+- `ZenohMessage::NodeStatusUpdate` - node status changes
+
+#### Bridge Updates
+
+- `publish_dataflow_definition()` - parse YAML and publish on startup
+- `parse_node_inputs()` - extract input ports from YAML
+- `parse_node_outputs()` - extract outputs with destinations
+
+#### Widget: NodeDetailPanel (mviz-widgets/src/node_detail_panel.rs)
+
+- Node selector dropdown (populated from dataflow definition or discovery)
+- Two-column I/O display (inputs in yellow, outputs in blue)
+- Status indicator (color-coded)
+- Filtered logs section (only selected node)
+- Clear logs button
+
+#### Documentation
+
+- Added Section 9.4 to mviz_design.md with full architecture
+- Added Task 4.8 to mviz_plan.md with acceptance criteria
+- Updated dependency graph
+
+---
+
 ## v0.1.8 (2026-01-09)
 
 ### Enhancement: Dynamic Node Filter Dropdown

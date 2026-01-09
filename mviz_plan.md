@@ -922,6 +922,97 @@ In App:
 Add file dialog integration for Open/Save menu items."
 ```
 
+### Task 4.8: Node Detail Panel Widget (Dev G) [PLANNED - Phase 7]
+**Duration**: 8 hours
+**Depends on**: Task 4.1, Task 4.5
+**Status**: Design Complete (v0.1.9)
+
+```
+AI Prompt:
+"Create node detail panel in mviz-widgets/src/node_detail_panel.rs:
+Displays detailed information about individual dataflow nodes including
+input/output connections and filtered logs.
+
+Layout:
+┌─────────────────────────────────────────────────────────────────────┐
+│ NODE: [dropdown]                                             [●]   │
+├─────────────────────────────────────────────────────────────────────┤
+│ INPUTS:                          │ OUTPUTS:                        │
+│  • port (from: source/output)    │  • port → [dest1, dest2]       │
+├─────────────────────────────────────────────────────────────────────┤
+│ LOGS:                                                  [Clear]     │
+│ [timestamp] message...                                              │
+└─────────────────────────────────────────────────────────────────────┘
+
+Protocol Types (mviz-core/src/zenoh_protocol.rs):
+- NodeInput: name, source (e.g., 'camera/image')
+- NodeOutput: name, destinations Vec<String>
+- NodeDefinition: id, node_type, inputs, outputs, env, status
+- NodeStatus: Running, Stopped, Error(String), Unknown
+- DataflowDefinition: name, nodes Vec<NodeDefinition>, timestamp
+
+Zenoh Message Extensions:
+- ZenohMessage::DataflowDefinition(DataflowDefinition)
+- ZenohMessage::NodeStatusUpdate(String, NodeStatus)
+
+Bridge Updates:
+- publish_dataflow_definition() - parse YAML and publish on startup
+- parse_node_inputs(node) - extract input ports from YAML
+- parse_node_outputs(node, all_nodes) - extract outputs with destinations
+
+Widget (live_design! macro):
+- NodeDetailPanel with header, node dropdown, status indicator
+- Two-column I/O section: inputs (yellow) | outputs (blue)
+- Scrollable logs section with Clear button
+
+NodeDetailPanelAction enum:
+- NodeSelected(String), ClearLogsClicked
+
+NodeDetailPanel struct (#[derive(Live, LiveHook, Widget)]):
+- nodes: HashMap<String, NodeDisplayState>
+- selected_node: Option<String>
+- node_logs: Vec<LogDisplayEntry>
+- max_logs: usize (500)
+
+Methods:
+- set_dataflow(cx, definition) - populate from DataflowDefinition
+- add_discovered_node(cx, node_id) - add node from discovery
+- add_log(cx, entry) - add log entry (filtered by selected node)
+- clear_logs(cx) - clear logs for current node
+- update_node_status(cx, node_id, status)
+
+Features:
+1. Node selector dropdown (from discovered nodes or dataflow definition)
+2. Input ports with source node/output
+3. Output ports with destination nodes list
+4. Status indicator (green=running, yellow=unknown, red=error)
+5. Filtered logs (only for selected node)
+6. Real-time log streaming via Zenoh
+7. Clear logs button"
+```
+
+**Acceptance Criteria**:
+- [ ] Node dropdown populated from Zenoh DataflowDefinition message
+- [ ] Inputs display shows port name and source
+- [ ] Outputs display shows port name and destination nodes
+- [ ] Status indicator updates based on node health
+- [ ] Logs filtered to selected node only
+- [ ] Clear button removes logs for current node
+- [ ] Node switching clears previous logs
+- [ ] Dropdown updates when new nodes discovered
+
+**Dependencies**:
+1. Bridge must publish `mviz/dataflow/definition` topic on startup
+2. Bridge must parse dataflow YAML for node I/O structure
+3. Logs must include node_id field for filtering
+
+**Zenoh Topics**:
+| Topic | Direction | Content |
+|-------|-----------|---------|
+| `mviz/dataflow/definition` | Bridge → Shell | Full dataflow graph JSON |
+| `mviz/node/{node_id}/status` | Bridge → Shell | Node status updates |
+| `mviz/logs` | Bridge → Shell | Log entries (existing) |
+
 ---
 
 ## Phase 5: Polish & Testing (Week 10)
@@ -1156,7 +1247,8 @@ Task 0.1 (Setup)
 │  Task 4.1 ──┬──▶ Task 4.2 (DisplaysPanel)         │
 │  (AppShell) ├──▶ Task 4.3 (PropertiesPanel)       │
 │             ├──▶ Task 4.4 (Toolbar)               │
-│             └──▶ Task 4.5 (SystemLogPanel) ✓      │
+│             ├──▶ Task 4.5 (SystemLogPanel) ✓      │
+│             └──▶ Task 4.8 (NodeDetailPanel) [Plan]│
 │                                                    │
 │  Task 4.6 ──▶ Task 4.7                            │
 │  (Manager)    (Config)                             │

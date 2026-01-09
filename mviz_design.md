@@ -3175,6 +3175,754 @@ impl App {
 
 ---
 
+## 9.4 Node Detail Panel (Phase 7)
+
+A dedicated panel for viewing detailed information about individual dataflow nodes, including their input/output connections and filtered logs.
+
+### Overview
+
+The Node Detail Panel replaces the static "3D Visualization (Rerun)" text in the center panel with an interactive node inspector that shows:
+
+1. **Node Header**: Selected node name with status indicator
+2. **Input/Output Connections**: Two-column layout showing data flow
+3. **Node Logs**: Filtered log entries specific to the selected node
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ NODE: yolo_detector                                          [●]   │
+├─────────────────────────────────────────────────────────────────────┤
+│ INPUTS:                          │ OUTPUTS:                        │
+│  • image (from: camera)          │  • boxes → [rerun, tracker]     │
+│  • tick (from: dora/timer/100ms) │  • masks → [segmentation]       │
+├─────────────────────────────────────────────────────────────────────┤
+│ LOGS:                                                               │
+│ [10:23:45.123] Processing frame 1842                                │
+│ [10:23:45.156] Detected 3 objects                                   │
+│ [10:23:45.189] ⚠ Inference took 45ms (threshold: 33ms)              │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Data Model
+
+#### Node Definition Protocol (mviz-core/src/zenoh_protocol.rs)
+
+```rust
+/// Input port definition for a node
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct NodeInput {
+    /// Input port name (e.g., "image", "tick")
+    pub name: String,
+    /// Source node and output (e.g., "camera/image", "dora/timer/100ms")
+    pub source: String,
+}
+
+/// Output port definition for a node
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct NodeOutput {
+    /// Output port name (e.g., "boxes", "masks")
+    pub name: String,
+    /// Destination nodes that subscribe to this output
+    pub destinations: Vec<String>,
+}
+
+/// Complete node definition from dataflow YAML
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct NodeDefinition {
+    /// Node ID (e.g., "yolo_detector", "bicycle_model")
+    pub id: String,
+    /// Node type (python, rust, binary)
+    pub node_type: String,
+    /// Path to operator (Python script, Rust crate, or binary)
+    pub operator_path: Option<String>,
+    /// Input ports with sources
+    pub inputs: Vec<NodeInput>,
+    /// Output ports with destinations
+    pub outputs: Vec<NodeOutput>,
+    /// Environment variables
+    pub env: HashMap<String, String>,
+    /// Status: running, stopped, error
+    pub status: NodeStatus,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub enum NodeStatus {
+    Running,
+    Stopped,
+    Error(String),
+    Unknown,
+}
+
+/// Message containing dataflow graph definition
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct DataflowDefinition {
+    /// Dataflow name
+    pub name: String,
+    /// All nodes in the dataflow
+    pub nodes: Vec<NodeDefinition>,
+    /// Timestamp when published
+    pub timestamp: f64,
+}
+```
+
+#### Zenoh Message Extension
+
+```rust
+// In mviz-shell/src/zenoh_receiver.rs
+
+pub enum ZenohMessage {
+    Data(VisData),
+    Log(LogEntry),
+    NodeDiscovered(String),
+    DataflowDefinition(DataflowDefinition),  // NEW: Full dataflow graph
+    NodeStatusUpdate(String, NodeStatus),     // NEW: Node status changes
+    Connected,
+    Disconnected(String),
+    Status(String),
+}
+```
+
+### Bridge Updates (mviz-rerun-bridge/src/main.rs)
+
+The bridge should publish the dataflow definition on startup:
+
+```rust
+impl MvizBridge {
+    /// Parse dataflow YAML and publish node definitions
+    fn publish_dataflow_definition(&self, yaml_path: &str) -> Result<()> {
+        let contents = std::fs::read_to_string(yaml_path)?;
+        let dataflow: serde_yaml::Value = serde_yaml::from_str(&contents)?;
+
+        let mut nodes = Vec::new();
+
+        if let Some(yaml_nodes) = dataflow.get("nodes").and_then(|n| n.as_sequence()) {
+            for node in yaml_nodes {
+                let id = node.get("id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown")
+                    .to_string();
+
+                // Parse inputs
+                let inputs = self.parse_node_inputs(node);
+
+                // Parse outputs
+                let outputs = self.parse_node_outputs(node, yaml_nodes);
+
+                // Determine node type
+                let node_type = if node.get("operator").is_some() {
+                    if node["operator"].get("python").is_some() {
+                        "python".to_string()
+                    } else {
+                        "rust".to_string()
+                    }
+                } else if node.get("path").is_some() {
+                    "binary".to_string()
+                } else {
+                    "unknown".to_string()
+                };
+
+                nodes.push(NodeDefinition {
+                    id,
+                    node_type,
+                    operator_path: self.get_operator_path(node),
+                    inputs,
+                    outputs,
+                    env: self.parse_env(node),
+                    status: NodeStatus::Running,
+                });
+            }
+        }
+
+        let definition = DataflowDefinition {
+            name: yaml_path.to_string(),
+            nodes,
+            timestamp: get_timestamp(),
+        };
+
+        // Publish to mviz/dataflow/definition topic
+        let json = serde_json::to_string(&definition)?;
+        self.session.put("mviz/dataflow/definition", json).await?;
+
+        Ok(())
+    }
+
+    fn parse_node_inputs(&self, node: &serde_yaml::Value) -> Vec<NodeInput> {
+        let mut inputs = Vec::new();
+
+        // Check operator inputs
+        if let Some(op) = node.get("operator") {
+            if let Some(input_map) = op.get("inputs").and_then(|i| i.as_mapping()) {
+                for (name, source) in input_map {
+                    inputs.push(NodeInput {
+                        name: name.as_str().unwrap_or("").to_string(),
+                        source: source.as_str().unwrap_or("").to_string(),
+                    });
+                }
+            }
+        }
+
+        // Check top-level inputs (for binary nodes)
+        if let Some(input_map) = node.get("inputs").and_then(|i| i.as_mapping()) {
+            for (name, source) in input_map {
+                inputs.push(NodeInput {
+                    name: name.as_str().unwrap_or("").to_string(),
+                    source: source.as_str().unwrap_or("").to_string(),
+                });
+            }
+        }
+
+        inputs
+    }
+
+    fn parse_node_outputs(&self, node: &serde_yaml::Value, all_nodes: &[serde_yaml::Value]) -> Vec<NodeOutput> {
+        let mut outputs = Vec::new();
+        let node_id = node.get("id").and_then(|v| v.as_str()).unwrap_or("");
+
+        // Get output names
+        let output_names: Vec<String> = if let Some(op) = node.get("operator") {
+            op.get("outputs")
+                .and_then(|o| o.as_sequence())
+                .map(|seq| seq.iter()
+                    .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                    .collect())
+                .unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+
+        // Find destinations for each output
+        for output_name in output_names {
+            let mut destinations = Vec::new();
+            let source_pattern = format!("{}/{}", node_id, output_name);
+
+            // Search all nodes for inputs matching this output
+            for other_node in all_nodes {
+                let other_id = other_node.get("id").and_then(|v| v.as_str()).unwrap_or("");
+
+                // Check operator inputs
+                if let Some(op) = other_node.get("operator") {
+                    if let Some(input_map) = op.get("inputs").and_then(|i| i.as_mapping()) {
+                        for (_name, source) in input_map {
+                            if source.as_str() == Some(&source_pattern) {
+                                destinations.push(other_id.to_string());
+                            }
+                        }
+                    }
+                }
+
+                // Check top-level inputs
+                if let Some(input_map) = other_node.get("inputs").and_then(|i| i.as_mapping()) {
+                    for (_name, source) in input_map {
+                        if source.as_str() == Some(&source_pattern) {
+                            destinations.push(other_id.to_string());
+                        }
+                    }
+                }
+            }
+
+            outputs.push(NodeOutput {
+                name: output_name,
+                destinations,
+            });
+        }
+
+        outputs
+    }
+}
+```
+
+### Widget Implementation (mviz-widgets/src/node_detail_panel.rs)
+
+```rust
+use makepad_widgets::*;
+use std::collections::HashMap;
+
+live_design! {
+    use link::theme::*;
+    use link::shaders::*;
+    use link::widgets::*;
+
+    // Node detail panel - replaces center panel content
+    pub NodeDetailPanel = {{NodeDetailPanel}} <RoundedView> {
+        width: Fill, height: Fill
+        flow: Down
+        padding: 16
+        spacing: 12
+        show_bg: true
+        draw_bg: { color: #1e1e1e, border_radius: 8.0 }
+
+        // Header with node selector
+        header = <View> {
+            width: Fill, height: Fit
+            flow: Right
+            spacing: 12
+            align: {y: 0.5}
+
+            <Label> {
+                text: "NODE:"
+                draw_text: { color: #888888, text_style: { font_size: 12.0 } }
+            }
+
+            node_selector = <DropDown> {
+                width: 200, height: 28
+                labels: ["Select Node..."]
+            }
+
+            <View> { width: Fill, height: 1 }
+
+            status_indicator = <View> {
+                width: 12, height: 12
+                show_bg: true
+                draw_bg: { color: #22c55e, border_radius: 6.0 }
+            }
+
+            status_label = <Label> {
+                text: "Running"
+                draw_text: { color: #22c55e, text_style: { font_size: 11.0 } }
+            }
+        }
+
+        // Separator
+        <View> {
+            width: Fill, height: 1
+            show_bg: true
+            draw_bg: { color: #333333 }
+        }
+
+        // Input/Output columns
+        io_section = <View> {
+            width: Fill, height: 150
+            flow: Right
+            spacing: 16
+
+            // Inputs column
+            inputs_column = <View> {
+                width: Fill, height: Fill
+                flow: Down
+                spacing: 6
+
+                <Label> {
+                    text: "INPUTS:"
+                    draw_text: { color: #fbbf24, text_style: { font_size: 11.0 } }
+                }
+
+                inputs_list = <View> {
+                    width: Fill, height: Fill
+                    flow: Down
+                    spacing: 4
+                }
+            }
+
+            // Vertical separator
+            <View> {
+                width: 1, height: Fill
+                show_bg: true
+                draw_bg: { color: #333333 }
+            }
+
+            // Outputs column
+            outputs_column = <View> {
+                width: Fill, height: Fill
+                flow: Down
+                spacing: 6
+
+                <Label> {
+                    text: "OUTPUTS:"
+                    draw_text: { color: #60a5fa, text_style: { font_size: 11.0 } }
+                }
+
+                outputs_list = <View> {
+                    width: Fill, height: Fill
+                    flow: Down
+                    spacing: 4
+                }
+            }
+        }
+
+        // Separator
+        <View> {
+            width: Fill, height: 1
+            show_bg: true
+            draw_bg: { color: #333333 }
+        }
+
+        // Logs section header
+        logs_header = <View> {
+            width: Fill, height: Fit
+            flow: Right
+            spacing: 8
+            align: {y: 0.5}
+
+            <Label> {
+                text: "LOGS:"
+                draw_text: { color: #a0a0a0, text_style: { font_size: 11.0 } }
+            }
+
+            log_count = <Label> {
+                text: "0 entries"
+                draw_text: { color: #606060, text_style: { font_size: 10.0 } }
+            }
+
+            <View> { width: Fill, height: 1 }
+
+            clear_logs_btn = <Button> {
+                width: Fit, height: 24
+                padding: {left: 8, right: 8}
+                text: "Clear"
+                draw_text: { color: #888 }
+            }
+        }
+
+        // Scrollable logs area
+        logs_scroll = <ScrollYView> {
+            width: Fill, height: Fill
+
+            logs_content = <Label> {
+                width: Fill, height: Fit
+                text: "No logs for this node"
+                draw_text: {
+                    color: #707070
+                    text_style: { font_size: 10.0, font: {path: dep("crate://makepad-widgets/resources/IBMPlexMono-Regular.ttf")} }
+                    wrap: Word
+                }
+            }
+        }
+    }
+
+    // Individual I/O port item
+    pub IOPortItem = <View> {
+        width: Fill, height: Fit
+        flow: Right
+        spacing: 4
+
+        bullet = <Label> {
+            text: "•"
+            draw_text: { color: #606060, text_style: { font_size: 10.0 } }
+        }
+
+        port_name = <Label> {
+            text: "port"
+            draw_text: { color: #ffffff, text_style: { font_size: 10.0 } }
+        }
+
+        connection = <Label> {
+            text: "(from: source)"
+            draw_text: { color: #888888, text_style: { font_size: 10.0 } }
+        }
+    }
+}
+
+/// Actions emitted by NodeDetailPanel
+#[derive(Clone, Debug, DefaultNone)]
+pub enum NodeDetailPanelAction {
+    None,
+    NodeSelected(String),
+    ClearLogsClicked,
+}
+
+/// Display state for a node
+#[derive(Clone, Debug)]
+pub struct NodeDisplayState {
+    pub id: String,
+    pub node_type: String,
+    pub status: NodeStatus,
+    pub inputs: Vec<NodeInput>,
+    pub outputs: Vec<NodeOutput>,
+}
+
+#[derive(Live, LiveHook, Widget)]
+pub struct NodeDetailPanel {
+    #[deref] view: View,
+
+    /// All known nodes from dataflow
+    #[rust] nodes: HashMap<String, NodeDisplayState>,
+
+    /// Currently selected node ID
+    #[rust] selected_node: Option<String>,
+
+    /// Filtered logs for selected node
+    #[rust] node_logs: Vec<LogDisplayEntry>,
+
+    /// Maximum logs to keep per node
+    #[rust] max_logs: usize,
+}
+
+impl NodeDetailPanel {
+    /// Set dataflow definition (called when received from Zenoh)
+    pub fn set_dataflow(&mut self, cx: &mut Cx, definition: &DataflowDefinition) {
+        self.nodes.clear();
+
+        let mut node_labels = vec!["Select Node...".to_string()];
+
+        for node_def in &definition.nodes {
+            self.nodes.insert(node_def.id.clone(), NodeDisplayState {
+                id: node_def.id.clone(),
+                node_type: node_def.node_type.clone(),
+                status: node_def.status.clone(),
+                inputs: node_def.inputs.clone(),
+                outputs: node_def.outputs.clone(),
+            });
+            node_labels.push(node_def.id.clone());
+        }
+
+        // Update dropdown
+        self.drop_down(id!(node_selector)).set_labels(cx, node_labels);
+        self.redraw(cx);
+    }
+
+    /// Add a node from discovery (without full definition)
+    pub fn add_discovered_node(&mut self, cx: &mut Cx, node_id: String) {
+        if !self.nodes.contains_key(&node_id) {
+            self.nodes.insert(node_id.clone(), NodeDisplayState {
+                id: node_id.clone(),
+                node_type: "unknown".to_string(),
+                status: NodeStatus::Unknown,
+                inputs: Vec::new(),
+                outputs: Vec::new(),
+            });
+
+            // Update dropdown labels
+            let mut labels: Vec<String> = vec!["Select Node...".to_string()];
+            labels.extend(self.nodes.keys().cloned());
+            self.drop_down(id!(node_selector)).set_labels(cx, labels);
+            self.redraw(cx);
+        }
+    }
+
+    /// Add a log entry (will be filtered to selected node)
+    pub fn add_log(&mut self, cx: &mut Cx, entry: LogDisplayEntry) {
+        // Only keep logs for currently selected node to save memory
+        if let Some(ref selected) = self.selected_node {
+            if entry.node_id == *selected {
+                self.node_logs.push(entry);
+
+                // Prune if too many
+                if self.node_logs.len() > self.max_logs {
+                    self.node_logs.remove(0);
+                }
+
+                self.update_logs_display(cx);
+            }
+        }
+    }
+
+    /// Clear logs for current node
+    pub fn clear_logs(&mut self, cx: &mut Cx) {
+        self.node_logs.clear();
+        self.update_logs_display(cx);
+    }
+
+    /// Update node status
+    pub fn update_node_status(&mut self, cx: &mut Cx, node_id: &str, status: NodeStatus) {
+        if let Some(node) = self.nodes.get_mut(node_id) {
+            node.status = status;
+
+            if self.selected_node.as_deref() == Some(node_id) {
+                self.update_status_display(cx);
+            }
+        }
+    }
+
+    fn update_io_display(&mut self, cx: &mut Cx) {
+        let Some(ref node_id) = self.selected_node else {
+            self.label(id!(inputs_list)).set_text(cx, "No node selected");
+            self.label(id!(outputs_list)).set_text(cx, "No node selected");
+            return;
+        };
+
+        let Some(node) = self.nodes.get(node_id) else {
+            return;
+        };
+
+        // Build inputs text
+        let inputs_text = if node.inputs.is_empty() {
+            "  (no inputs)".to_string()
+        } else {
+            node.inputs.iter()
+                .map(|input| format!("  • {} (from: {})", input.name, input.source))
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+
+        // Build outputs text
+        let outputs_text = if node.outputs.is_empty() {
+            "  (no outputs)".to_string()
+        } else {
+            node.outputs.iter()
+                .map(|output| {
+                    let dests = if output.destinations.is_empty() {
+                        "[]".to_string()
+                    } else {
+                        format!("[{}]", output.destinations.join(", "))
+                    };
+                    format!("  • {} → {}", output.name, dests)
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+
+        // Update labels (using inputs_list/outputs_list as Labels for simplicity)
+        // In full implementation, these would be dynamic views
+        self.label(id!(inputs_list.content)).set_text(cx, &inputs_text);
+        self.label(id!(outputs_list.content)).set_text(cx, &outputs_text);
+    }
+
+    fn update_status_display(&mut self, cx: &mut Cx) {
+        let Some(ref node_id) = self.selected_node else { return };
+        let Some(node) = self.nodes.get(node_id) else { return };
+
+        let (status_text, status_color) = match &node.status {
+            NodeStatus::Running => ("Running", "#22c55e"),
+            NodeStatus::Stopped => ("Stopped", "#888888"),
+            NodeStatus::Error(msg) => ("Error", "#ef4444"),
+            NodeStatus::Unknown => ("Unknown", "#fbbf24"),
+        };
+
+        self.label(id!(status_label)).set_text(cx, status_text);
+        // Note: Color would need to be set via draw_bg in live_design or custom shader
+    }
+
+    fn update_logs_display(&mut self, cx: &mut Cx) {
+        if self.node_logs.is_empty() {
+            self.label(id!(logs_content)).set_text(cx, "No logs for this node");
+            self.label(id!(log_count)).set_text(cx, "0 entries");
+        } else {
+            let logs_text = self.node_logs.iter()
+                .rev()  // Newest first
+                .take(100)  // Limit display
+                .map(|entry| {
+                    let level_prefix = match entry.level {
+                        0 => "   ",  // Debug
+                        1 => "   ",  // Info
+                        2 => " ⚠ ",  // Warn
+                        3 => " ✖ ",  // Error
+                        _ => "   ",
+                    };
+                    format!("[{:.3}]{}{}", entry.timestamp, level_prefix, entry.message)
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            self.label(id!(logs_content)).set_text(cx, &logs_text);
+            self.label(id!(log_count)).set_text(cx, &format!("{} entries", self.node_logs.len()));
+        }
+    }
+}
+
+impl Widget for NodeDetailPanel {
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        let actions = cx.capture_actions(|cx| {
+            self.view.handle_event(cx, event, scope);
+        });
+
+        // Handle node selection
+        if let Some(index) = self.drop_down(id!(node_selector)).changed(&actions) {
+            if index == 0 {
+                // "Select Node..." - deselect
+                self.selected_node = None;
+                self.node_logs.clear();
+            } else {
+                // Get node ID from index
+                let node_ids: Vec<String> = self.nodes.keys().cloned().collect();
+                if let Some(node_id) = node_ids.get(index - 1) {
+                    self.selected_node = Some(node_id.clone());
+                    self.node_logs.clear();  // Clear logs when switching nodes
+                    cx.widget_action(self.widget_uid(), &scope.path,
+                        NodeDetailPanelAction::NodeSelected(node_id.clone()));
+                }
+            }
+
+            self.update_io_display(cx);
+            self.update_status_display(cx);
+            self.update_logs_display(cx);
+            self.redraw(cx);
+        }
+
+        // Handle clear logs button
+        if self.button(id!(clear_logs_btn)).clicked(&actions) {
+            self.clear_logs(cx);
+            cx.widget_action(self.widget_uid(), &scope.path,
+                NodeDetailPanelAction::ClearLogsClicked);
+        }
+    }
+
+    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        self.view.draw_walk(cx, scope, walk)
+    }
+}
+```
+
+### App Integration (mviz-shell/src/app.rs)
+
+```rust
+// Update center panel in live_design!
+center_panel = <NodeDetailPanel> {
+    width: Fill, height: Fill
+}
+
+// In App struct
+#[derive(Live, LiveHook)]
+pub struct App {
+    // ... existing fields ...
+    #[rust] dataflow_definition: Option<DataflowDefinition>,
+}
+
+// In process_zenoh_messages()
+ZenohMessage::DataflowDefinition(definition) => {
+    debug_log(&format!("Received dataflow definition: {} nodes", definition.nodes.len()));
+    self.dataflow_definition = Some(definition.clone());
+    self.ui.node_detail_panel(id!(center_panel)).set_dataflow(cx, &definition);
+}
+
+ZenohMessage::NodeStatusUpdate(node_id, status) => {
+    self.ui.node_detail_panel(id!(center_panel))
+        .update_node_status(cx, &node_id, status);
+}
+
+ZenohMessage::Log(log_entry) => {
+    // ... existing log panel code ...
+
+    // Also send to node detail panel
+    let display_entry = LogDisplayEntry { /* ... */ };
+    self.ui.node_detail_panel(id!(center_panel)).add_log(cx, display_entry.clone());
+}
+```
+
+### Zenoh Topics
+
+| Topic | Direction | Content |
+|-------|-----------|---------|
+| `mviz/dataflow/definition` | Bridge → Shell | Full dataflow graph JSON |
+| `mviz/node/{node_id}/status` | Bridge → Shell | Node status updates |
+| `mviz/logs` | Bridge → Shell | Log entries (existing) |
+
+### Features
+
+1. **Node Selection**: Dropdown populated from discovered nodes or dataflow definition
+2. **Input Display**: Shows each input port with its source (node/output)
+3. **Output Display**: Shows each output port with its destination nodes
+4. **Status Indicator**: Color-coded status (green=running, yellow=unknown, red=error)
+5. **Filtered Logs**: Only logs from selected node are displayed
+6. **Clear Logs**: Button to clear logs for current node
+7. **Real-time Updates**: Logs stream in as they arrive from Zenoh
+
+### Example Dataflow Visualization
+
+For `dataflow-path-following.yml`:
+
+```
+Node: bicycle_model
+┌─────────────────────────────────────────────────────────────────────┐
+│ INPUTS:                          │ OUTPUTS:                        │
+│  • tick (from: dora/timer/20ms)  │  • sim_pose → [simple_planner,  │
+│  • steering_cmd (from:           │                mviz_bridge]     │
+│      simple_planner/steering)    │  • sim_state → [imu_synthesizer,│
+│  • throttle_cmd (from:           │                 mviz_bridge]    │
+│      simple_planner/throttle)    │                                 │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## 10. URDF Integration
 
 ### 10.1 URDF Loader (`rv-urdf/src/parser.rs`)
