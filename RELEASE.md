@@ -1,42 +1,30 @@
 # MViz Release Notes
 
-## v0.3.3 (2026-01-09)
+## v0.3.4 (2026-01-09)
 
-### Enhancement: Scrollable Graphs and Resizable Panels
+### Fix: Restore Three-Column Layout
 
-Added scrolling support for the dataflow graph widget and resizable panel dividers for flexible UI layouts.
+Fixed blank screen issue caused by Makepad Splitter widget not rendering children correctly.
 
 #### Changes
 
-**mviz-widgets/src/dataflow_graph.rs:**
-- Added `scroll_bars: <ScrollBars> {}` to graph_canvas View
-- Graph content now scrollable when the dataflow graph is larger than the visible area
-- Changed Label dimensions to `Fit, Fit` for proper content sizing
-- Changed text wrap mode from `Word` to `Line` for better graph rendering
-
 **mviz-shell/src/app.rs:**
-- Replaced flat View layout with nested `Splitter` widgets for resizable panels
-- Outer Splitter: Separates left panel (280px default) from center+right
-- Inner Splitter: Separates center node detail panel from right panel (280px default)
-- All panel dividers are now draggable to adjust section sizes
-- Uses `align: FromA(280.0)` and `align: FromB(280.0)` for initial sizing
+- Reverted from nested Splitter layout to stable three-column View layout
+- Left panel: Fixed 280px width with DisplaysPanel and DataflowGraph
+- Center panel: Flexible width with NodeDetailPanel
+- Right panel: Fixed 280px width with PropertiesPanel and LogPanel
+- Added visible divider lines (1px, #333 color) between panels
+- Added explicit `show_bg: true` with background colors for each panel
 
-#### UI Layout
+#### Note
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│ Toolbar                                                             │
-├─────────────┬────────────────────────────────┬──────────────────────┤
-│ Displays    │                                │ Properties Panel     │
-│ Panel       │   Node Detail Panel            │                      │
-│ ◄──────►    │       (resizable)              │   ◄────────►         │
-│ (draggable) │                                │   (draggable)        │
-│             │                                │                      │
-│ Dataflow    │                                │ Log Panel            │
-│ Graph       │                                │                      │
-│ (scrollable)│                                │                      │
-└─────────────┴────────────────────────────────┴──────────────────────┘
-```
+The Splitter-based resizable panels (v0.3.3) caused the UI to render only the splitter bar with no content. This release restores the working fixed-width layout while keeping the scrollable dataflow graph feature.
+
+---
+
+## v0.3.3 (2026-01-09) - BROKEN
+
+**Do not use** - Nested Splitter layout caused blank screen.
 
 ---
 
