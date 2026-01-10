@@ -1182,6 +1182,94 @@ Suggest improvements."
 
 ---
 
+---
+
+## Phase 8: Dataflow Graph Visualization [COMPLETED v0.3.1-v0.3.2]
+
+### Task 8.1: Graph State Tracking in Bridge [COMPLETED]
+**Duration**: 4 hours
+**Status**: Implemented in mviz-rerun-bridge/src/main.rs
+
+- Added `GraphState` struct for tracking discovered graph structure
+- `init_from_definitions()` - initialize from YAML node definitions
+- `record_input()` - infer edges from input patterns (e.g., `source_node/output_port`)
+- `to_graph_update()` - generate GraphUpdate message for publishing
+- Publishes graph updates every 2 seconds via Zenoh
+
+### Task 8.2: Graph Protocol Types [COMPLETED]
+**Duration**: 2 hours
+**Status**: Implemented in mviz-core/src/zenoh_protocol.rs
+
+- `GraphNodeStatus` enum: Active, Idle, Error
+- `GraphNode` struct: id, status, last_seen
+- `GraphEdge` struct: from_node, from_port, to_node, to_port
+- `GraphUpdate` struct: nodes, edges, timestamp
+
+### Task 8.3: DataflowGraphWidget [COMPLETED]
+**Duration**: 6 hours
+**Status**: Implemented in mviz-widgets/src/dataflow_graph.rs
+
+- ASCII-style text rendering with box characters (┌─┐└─┘)
+- Hierarchical layout via `compute_layout()` using BFS
+- Click detection for node selection
+- Green emoji (🟢) for active nodes, white (⚪) for idle
+- Status text: [RUN] / [---]
+- DrawNodeBox and DrawEdgeLine shaders (prepared for future graphical rendering)
+
+### Task 8.4: Graph Update Handler [COMPLETED]
+**Duration**: 2 hours
+**Status**: Implemented in mviz-shell/src/app.rs
+
+- `ZenohMessage::GraphUpdate` handling in `process_zenoh_messages()`
+- Converts protocol types to widget types
+- Updates DataflowGraphWidget via `update_from_graph_update()`
+
+**Acceptance Criteria**:
+- [x] Graph displayed in left panel
+- [x] Nodes show active/idle status with colored emoji
+- [x] Edges displayed as arrows between nodes
+- [x] Click to select nodes
+- [x] Real-time updates via Zenoh
+
+---
+
+## Phase 9: UI Layout Improvements [COMPLETED v0.3.4-v0.3.7]
+
+### Task 9.1: Scrollable Graph Canvas [COMPLETED]
+**Duration**: 1 hour
+**Status**: Implemented in mviz-widgets/src/dataflow_graph.rs
+
+- Added `scroll_bars: <ScrollBars> {}` to graph_canvas View
+- Graph content scrollable when larger than visible area
+- Changed Label dimensions to Fit for proper sizing
+
+### Task 9.2: Panel Width Configuration [COMPLETED]
+**Duration**: 1 hour
+**Status**: Implemented in mviz-shell/src/app.rs
+
+- Left panel: 280px → 340px
+- Right panel: 280px → 340px
+- More space for dataflow graph, properties, and logs
+
+### Task 9.3: Fixed Three-Column Layout [COMPLETED]
+**Duration**: 2 hours
+**Status**: Implemented in mviz-shell/src/app.rs
+
+- Stable fixed-width View layout (Splitter has rendering bugs)
+- Left: 340px, Center: Fill, Right: 340px
+- 1px divider lines (#333) between panels
+- Explicit `show_bg: true` with background colors
+
+**Note**: Makepad Splitter widget causes blank screen - both nested and single-level configurations fail. Using fixed Views until Splitter is fixed.
+
+**Acceptance Criteria**:
+- [x] All three panels visible
+- [x] Dataflow graph scrollable
+- [x] Wider panels for more content
+- [x] Visible divider lines
+
+---
+
 ## Appendix: Task Dependencies Graph
 
 ```
@@ -1259,5 +1347,26 @@ Task 0.1 (Setup)
 │                    Phase 5                         │
 │                                                    │
 │  Task 5.1-5.4 (Polish)                            │
+└───────────────────────────────────────────────────┘
+                    │
+                    ▼
+┌───────────────────────────────────────────────────┐
+│              Phase 8 [COMPLETED]                   │
+│                                                    │
+│  Task 8.1 (GraphState) ──▶ Task 8.2 (Protocol)    │
+│                              │                     │
+│                              ▼                     │
+│  Task 8.3 (DataflowGraphWidget) ◀─────────────    │
+│       │                                            │
+│       └──▶ Task 8.4 (Handler)                     │
+└───────────────────────────────────────────────────┘
+                    │
+                    ▼
+┌───────────────────────────────────────────────────┐
+│              Phase 9 [COMPLETED]                   │
+│                                                    │
+│  Task 9.1 (ScrollBars)                            │
+│  Task 9.2 (Panel Widths: 340px)                   │
+│  Task 9.3 (Fixed Layout)                          │
 └───────────────────────────────────────────────────┘
 ```

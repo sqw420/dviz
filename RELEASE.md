@@ -1,5 +1,24 @@
 # MViz Release Notes
 
+## v0.3.8 (2026-01-10)
+
+### Documentation: Updated Design and Plan
+
+Updated mviz_design.md and mviz_plan.md with implemented features from Phase 8-9.
+
+#### Changes
+
+**mviz_design.md:**
+- Added Section 9.5: Dataflow Graph Widget (Phase 8)
+- Added Section 9.6: UI Layout Configuration (Phase 9)
+
+**mviz_plan.md:**
+- Added Phase 8: Dataflow Graph Visualization (Tasks 8.1-8.4)
+- Added Phase 9: UI Layout Improvements (Tasks 9.1-9.3)
+- Updated dependency graph with new phases
+
+---
+
 ## v0.3.7 (2026-01-09)
 
 ### Enhancement: Wider Side Panels

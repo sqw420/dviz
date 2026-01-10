@@ -4592,3 +4592,166 @@ Choose **Option 2 (Separate)** if:
 - [ ] Long-term maintenance cost is a concern
 
 **Recommendation**: Start with Option 2 for MVP, evaluate Option 1 for v2.0 if user feedback demands unified window experience.
+
+---
+
+## 9.5 Dataflow Graph Widget (Phase 8) [IMPLEMENTED v0.3.1-v0.3.2]
+
+### Overview
+
+Embedded visualization of the Dora dataflow graph directly in the Makepad UI. The graph is inferred dynamically from message flow patterns via Zenoh without requiring YAML files on the PC side.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                      Bridge (Robot Side)                             │
+│  ┌─────────────────────────────────────────────────────────────────┐│
+│  │ GraphState                                                       ││
+│  │  - nodes: HashMap<String, GraphNodeState>                        ││
+│  │  - input_source_map: HashMap<(node, input), (source, output)>    ││
+│  │  - infer edges from input patterns (source_node/output_port)     ││
+│  │  - publish graph_update every 2 seconds via Zenoh                ││
+│  └─────────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼ Zenoh (mviz/graph_update)
+┌─────────────────────────────────────────────────────────────────────┐
+│                      Shell (PC Side)                                 │
+│  ┌─────────────────────────────────────────────────────────────────┐│
+│  │ DataflowGraphWidget                                              ││
+│  │  - nodes: Vec<GraphDisplayNode>                                  ││
+│  │  - edges: Vec<GraphDisplayEdge>                                  ││
+│  │  - ASCII-style text rendering with box characters               ││
+│  │  - Click detection for node selection                            ││
+│  │  - Scrollable canvas with ScrollBars                             ││
+│  └─────────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Protocol Types (mviz-core/src/zenoh_protocol.rs)
+
+```rust
+pub enum GraphNodeStatus { Active, Idle, Error }
+
+pub struct GraphNode {
+    pub id: String,
+    pub status: GraphNodeStatus,
+    pub last_seen: f64,
+}
+
+pub struct GraphEdge {
+    pub from_node: String,
+    pub from_port: String,
+    pub to_node: String,
+    pub to_port: String,
+}
+
+pub struct GraphUpdate {
+    pub nodes: Vec<GraphNode>,
+    pub edges: Vec<GraphEdge>,
+    pub timestamp: f64,
+}
+```
+
+### Display Format
+
+```
+     bicycle_model / sim_pose
+           ↓
+  ┌───────────────────────────┐
+  │ 🟢 simple_planner [RUN] ◀ │
+  └───────────────────────────┘
+     ↓ 2 output(s)
+
+━━━ 3 nodes, 2 edges ━━━
+Updated: 2.1s ago
+```
+
+### Status Indicators
+
+| Icon | Text | Meaning |
+|------|------|---------|
+| 🟢 | [RUN] | Node is actively processing |
+| ⚪ | [---] | Node is idle |
+| ◀ | | Currently selected node |
+
+### Widget Features
+
+- **Scrollable canvas**: ScrollBars for large graphs
+- **Grid background**: Subtle grid pattern via shader
+- **Click detection**: Select nodes by clicking
+- **Dynamic updates**: Real-time graph updates via Zenoh
+- **Hierarchical layout**: compute_layout() positions nodes by dependency level
+
+---
+
+## 9.6 UI Layout Configuration (Phase 9) [IMPLEMENTED v0.3.4-v0.3.7]
+
+### Three-Column Layout
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Toolbar (44px)                                                       │
+├──────────────┬─────────────────────────────┬────────────────────────┤
+│ Left Panel   │ Center Panel                │ Right Panel            │
+│ (340px)      │ (flexible)                  │ (340px)                │
+│              │                             │                        │
+│ DisplaysPanel│ NodeDetailPanel             │ PropertiesPanel        │
+│ (height:300) │ (fills remaining)           │ (height:200)           │
+│              │                             │                        │
+│ DataflowGraph│                             │ LogPanel               │
+│ (scrollable) │                             │ (fills remaining)      │
+│              │                             │                        │
+│ StatusLabel  │                             │                        │
+├──────────────┴─────────────────────────────┴────────────────────────┤
+│ Dividers: 1px #333 lines between panels                             │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Panel Configuration
+
+| Panel | Width | Background | Contents |
+|-------|-------|------------|----------|
+| Left | 340px | #1e1e1e | DisplaysPanel, DataflowGraphWidget, StatusLabel |
+| Center | Fill | #1a1a1a | NodeDetailPanel |
+| Right | 340px | #1e1e1e | PropertiesPanel, LogPanel |
+
+### Implementation Notes
+
+1. **Splitter Widget Issue**: Makepad's Splitter widget has rendering bugs (only divider shows, children don't render). Using fixed-width Views instead.
+
+2. **Scrollable Graph**: DataflowGraphWidget uses `scroll_bars: <ScrollBars> {}` for scrolling when graph content exceeds visible area.
+
+3. **Divider Lines**: 1px Views with `show_bg: true` and `draw_bg: { color: #333 }` between panels.
+
+### live_design! Structure
+
+```rust
+content = <View> {
+    width: Fill, height: Fill
+    flow: Right
+    spacing: 0
+
+    left_panel = <View> {
+        width: 340, height: Fill
+        flow: Down
+        // ... DisplaysPanel, DataflowGraphWidget, StatusLabel
+    }
+
+    <View> { width: 1, height: Fill, show_bg: true, draw_bg: { color: #333 } }
+
+    center_panel = <View> {
+        width: Fill, height: Fill
+        // ... NodeDetailPanel
+    }
+
+    <View> { width: 1, height: Fill, show_bg: true, draw_bg: { color: #333 } }
+
+    right_panel = <View> {
+        width: 340, height: Fill
+        flow: Down
+        // ... PropertiesPanel, LogPanel
+    }
+}
+```
