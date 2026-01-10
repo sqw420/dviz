@@ -1,5 +1,59 @@
 # MViz Release Notes
 
+## v0.2.4 (2026-01-09)
+
+### Feature: Live I/O Activity Display in NodeDetailPanel
+
+Changed the NodeDetailPanel's INPUTS and OUTPUTS sections from showing static schema definitions to displaying live message data flowing through ports.
+
+#### Changes
+
+**mviz-rerun-bridge/src/main.rs:**
+- Added `publish_io_activity()` - publishes I/O activity logs with port information
+- Added `format_values_summary()` - formats float arrays as summary strings for display
+- Bridge now publishes I/O activity for:
+  - Its own inputs (showing data received from upstream nodes)
+  - Source node outputs (showing data the source node emitted)
+
+**mviz-core/src/zenoh_protocol.rs:**
+- Added `port: Option<String>` field to `LogData` - identifies which port the message relates to
+- Added `port_type: Option<String>` field to `LogData` - "input" or "output"
+
+**mviz-widgets/src/node_detail_panel.rs:**
+- Added `IoActivityEntry` struct - timestamp, port_name, data_summary
+- Added `input_activity: VecDeque<IoActivityEntry>` to `NodeDisplayState`
+- Added `output_activity: VecDeque<IoActivityEntry>` to `NodeDisplayState`
+- Added `add_io_activity()` method - routes I/O activity to correct node and port
+- Updated `update_io_display()` - now shows live messages instead of definitions
+
+**mviz-shell/src/zenoh_receiver.rs:**
+- Extended log entry parsing to extract `port` and `port_type` from JSON data
+- Port info now stored in `LogEntry.metadata` for routing in app.rs
+
+**mviz-shell/src/app.rs:**
+- Log handler now checks for port info in metadata
+- Routes I/O activity logs to `add_io_activity()` instead of regular log panels
+- Regular logs (without port info) still go to LogPanel
+
+#### Display Format
+
+Before (v0.2.3):
+```
+INPUTS:                         OUTPUTS:
+• tick (from: dora/timer/...)   • sim_pose -> [simple_planner, ...]
+```
+
+After (v0.2.4):
+```
+INPUTS:                         OUTPUTS:
+[0.12] tick: [0.02, ...]        [0.12] sim_pose: [1.23, 4.56, ...]
+[0.14] steering_cmd: [0.05]     [0.14] sim_state: [1.23, 4.56, ...]
+```
+
+Live data flows in real-time showing the actual values being transmitted through each port.
+
+---
+
 ## v0.2.3 (2026-01-09)
 
 ### Fix: Add DATAFLOW_PATH to Bridge Environment

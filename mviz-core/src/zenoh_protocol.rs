@@ -283,6 +283,12 @@ pub struct LogData {
     pub message: String,
     /// Source node ID
     pub node_id: String,
+    /// Optional port name (for I/O activity logs)
+    #[serde(default)]
+    pub port: Option<String>,
+    /// Optional port type: "input" or "output" (for I/O activity logs)
+    #[serde(default)]
+    pub port_type: Option<String>,
     /// Optional metadata
     #[serde(default)]
     pub metadata: Option<std::collections::HashMap<String, String>>,

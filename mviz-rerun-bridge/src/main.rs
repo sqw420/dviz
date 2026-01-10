@@ -233,6 +233,47 @@ async fn publish_log(
     let _ = session.put(&topic, serialize_message(&log_msg, None)).await;
 }
 
+/// Publish I/O activity log - shows live message data on ports
+async fn publish_io_activity(
+    session: &zenoh::Session,
+    topic_prefix: &str,
+    timestamp: f64,
+    node_id: &str,
+    port_name: &str,
+    port_type: &str,  // "input" or "output"
+    data_summary: &str,
+) {
+    let log_msg = MvizMessage {
+        msg_type: "log".to_string(),
+        timestamp: Some(timestamp),
+        data: serde_json::json!({
+            "level": "INFO",
+            "message": data_summary,
+            "node_id": node_id,
+            "port": port_name,
+            "port_type": port_type,
+        }),
+        format: None,
+        count: None,
+    };
+    let topic = format!("{}/logs", topic_prefix);
+    let _ = session.put(&topic, serialize_message(&log_msg, None)).await;
+}
+
+/// Format float values as a summary string
+fn format_values_summary(values: &[f32], max_values: usize) -> String {
+    if values.is_empty() {
+        return "[]".to_string();
+    }
+    if values.len() <= max_values {
+        let formatted: Vec<String> = values.iter().map(|v| format!("{:.2}", v)).collect();
+        format!("[{}]", formatted.join(", "))
+    } else {
+        let formatted: Vec<String> = values.iter().take(max_values).map(|v| format!("{:.2}", v)).collect();
+        format!("[{}, ...+{}]", formatted.join(", "), values.len() - max_values)
+    }
+}
+
 #[tokio::main(flavor = "multi_thread", worker_threads = 1)]
 async fn main() -> Result<()> {
     env_logger::init();
@@ -354,6 +395,42 @@ async fn main() -> Result<()> {
                     continue;
                 };
                 log::info!("Processing {} with {} float values", input_id, values.len());
+
+                // Publish I/O activity for mviz_bridge inputs (showing live message data)
+                let data_summary = format_values_summary(&values, 4);
+                publish_io_activity(
+                    &session,
+                    &topic_prefix,
+                    timestamp,
+                    "mviz_bridge",
+                    input_id,
+                    "input",
+                    &data_summary,
+                ).await;
+
+                // Also publish I/O activity for the SOURCE node (its output)
+                // input_id format is usually "source_node/output_name" or just "output_name"
+                let (src_node, output_name): (&str, &str) = if input_id.contains('/') {
+                    let parts: Vec<&str> = input_id.split('/').collect();
+                    (parts[0], *parts.get(1).unwrap_or(&input_id))
+                } else {
+                    // Try to match known input mappings
+                    match input_id {
+                        "sim_pose" | "sim_state" => ("bicycle_model", input_id),
+                        "steering_cmd" | "throttle_cmd" | "target_point" | "waypoints" => ("simple_planner", input_id),
+                        "imu_msg" => ("imu_synthesizer", input_id),
+                        _ => (source_node, input_id),
+                    }
+                };
+                publish_io_activity(
+                    &session,
+                    &topic_prefix,
+                    timestamp,
+                    src_node,
+                    output_name,
+                    "output",
+                    &data_summary,
+                ).await;
 
                 // Determine data type and entity path based on input ID
                 let (entity_path, payload) = match input_id {

@@ -1401,21 +1401,6 @@ impl App {
                 ZenohMessage::Log(log_entry) => {
                     self.log_entry_count += 1;
 
-                    // Convert to display entry
-                    let level_num = match log_entry.level {
-                        LogLevel::Debug => 0,
-                        LogLevel::Info => 1,
-                        LogLevel::Warn => 2,
-                        LogLevel::Error => 3,
-                    };
-                    let display_entry = LogDisplayEntry {
-                        timestamp: log_entry.timestamp,
-                        level: level_num,
-                        level_str: log_entry.level.as_str().to_string(),
-                        node_id: log_entry.node_id.clone(),
-                        message: log_entry.message.clone(),
-                    };
-
                     // Track discovered node
                     if self.discovered_nodes.insert(log_entry.node_id.clone()) {
                         debug_log(&format!("Discovered node from log: {}", log_entry.node_id));
@@ -1426,10 +1411,38 @@ impl App {
                         self.ui.node_detail_panel(id!(node_detail_panel)).set_discovered_nodes(cx, nodes);
                     }
 
-                    // Add to log panel
-                    self.ui.log_panel(id!(log_panel)).add_entry(cx, display_entry.clone());
-                    // Also add to node detail panel
-                    self.ui.node_detail_panel(id!(node_detail_panel)).add_log(cx, display_entry);
+                    // Check if this is an I/O activity log (has port info)
+                    if let (Some(port), Some(port_type)) = (&log_entry.metadata.get("port"), &log_entry.metadata.get("port_type")) {
+                        // This is I/O activity - add to the node detail panel's I/O display
+                        self.ui.node_detail_panel(id!(node_detail_panel)).add_io_activity(
+                            cx,
+                            &log_entry.node_id,
+                            port,
+                            port_type,
+                            log_entry.timestamp,
+                            &log_entry.message,
+                        );
+                    } else {
+                        // Regular log entry - add to log panels
+                        let level_num = match log_entry.level {
+                            LogLevel::Debug => 0,
+                            LogLevel::Info => 1,
+                            LogLevel::Warn => 2,
+                            LogLevel::Error => 3,
+                        };
+                        let display_entry = LogDisplayEntry {
+                            timestamp: log_entry.timestamp,
+                            level: level_num,
+                            level_str: log_entry.level.as_str().to_string(),
+                            node_id: log_entry.node_id.clone(),
+                            message: log_entry.message.clone(),
+                        };
+
+                        // Add to log panel
+                        self.ui.log_panel(id!(log_panel)).add_entry(cx, display_entry.clone());
+                        // Also add to node detail panel logs
+                        self.ui.node_detail_panel(id!(node_detail_panel)).add_log(cx, display_entry);
+                    }
 
                     if self.log_entry_count % 50 == 1 {
                         debug_log(&format!("Log entries: {}", self.log_entry_count));

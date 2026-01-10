@@ -2,11 +2,12 @@
 //!
 //! Displays detailed information about individual dataflow nodes:
 //! - Node selector dropdown
-//! - Input/Output ports display
+//! - Live Input/Output message activity
 //! - Filtered logs for selected node
 
 use makepad_widgets::*;
 use crate::log_panel::LogDisplayEntry;
+use std::collections::VecDeque;
 
 live_design! {
     use link::theme::*;
@@ -197,12 +198,24 @@ pub struct NodeOutput {
     pub destinations: Vec<String>,
 }
 
+/// I/O activity entry - a live message on a port
+#[derive(Clone, Debug)]
+pub struct IoActivityEntry {
+    pub timestamp: f64,
+    pub port_name: String,
+    pub data_summary: String,
+}
+
 /// Node display state
 #[derive(Clone, Debug)]
 pub struct NodeDisplayState {
     pub id: String,
     pub inputs: Vec<NodeInput>,
     pub outputs: Vec<NodeOutput>,
+    /// Recent input activity messages
+    pub input_activity: VecDeque<IoActivityEntry>,
+    /// Recent output activity messages
+    pub output_activity: VecDeque<IoActivityEntry>,
 }
 
 #[derive(Live, LiveHook, Widget)]
@@ -365,12 +378,59 @@ impl NodeDetailPanel {
                 id: node_id.to_string(),
                 inputs,
                 outputs,
+                input_activity: VecDeque::with_capacity(20),
+                output_activity: VecDeque::with_capacity(20),
             });
         }
 
         // Update display if this is the selected node
         if self.selected_node.as_deref() == Some(node_id) {
             self.update_io_display(cx);
+        }
+    }
+
+    /// Add I/O activity for a node (live message data)
+    pub fn add_io_activity(&mut self, cx: &mut Cx, node_id: &str, port_name: &str, port_type: &str, timestamp: f64, data_summary: &str) {
+        if self.max_logs == 0 {
+            self.init();
+        }
+
+        // Ensure node exists
+        if !self.nodes.iter().any(|n| n.id == node_id) {
+            self.nodes.push(NodeDisplayState {
+                id: node_id.to_string(),
+                inputs: Vec::new(),
+                outputs: Vec::new(),
+                input_activity: VecDeque::with_capacity(20),
+                output_activity: VecDeque::with_capacity(20),
+            });
+        }
+
+        // Find the node and add activity
+        if let Some(node) = self.nodes.iter_mut().find(|n| n.id == node_id) {
+            let entry = IoActivityEntry {
+                timestamp,
+                port_name: port_name.to_string(),
+                data_summary: data_summary.to_string(),
+            };
+
+            let activity = if port_type == "input" {
+                &mut node.input_activity
+            } else {
+                &mut node.output_activity
+            };
+
+            activity.push_back(entry);
+            // Keep only last 15 messages
+            while activity.len() > 15 {
+                activity.pop_front();
+            }
+        }
+
+        // Update display if this is the selected node
+        if self.selected_node.as_deref() == Some(node_id) {
+            self.update_io_display(cx);
+            self.redraw(cx);
         }
     }
 
@@ -395,42 +455,39 @@ impl NodeDetailPanel {
             return;
         };
 
-        // Find node definition
+        // Find node state
         let node = self.nodes.iter().find(|n| n.id == *node_id);
 
-        // Build inputs text
+        // Build inputs text from live activity
         let inputs_text = if let Some(node) = node {
-            if node.inputs.is_empty() {
-                "  (no inputs)".to_string()
+            if node.input_activity.is_empty() {
+                "  (waiting for data...)".to_string()
             } else {
-                node.inputs.iter()
-                    .map(|input| format!("  * {} (from: {})", input.name, input.source))
+                node.input_activity.iter()
+                    .rev()
+                    .take(10)
+                    .map(|entry| format!("[{:.2}] {}: {}", entry.timestamp, entry.port_name, entry.data_summary))
                     .collect::<Vec<_>>()
                     .join("\n")
             }
         } else {
-            "  (definition not available)".to_string()
+            "  (waiting for data...)".to_string()
         };
 
-        // Build outputs text
+        // Build outputs text from live activity
         let outputs_text = if let Some(node) = node {
-            if node.outputs.is_empty() {
-                "  (no outputs)".to_string()
+            if node.output_activity.is_empty() {
+                "  (waiting for data...)".to_string()
             } else {
-                node.outputs.iter()
-                    .map(|output| {
-                        let dests = if output.destinations.is_empty() {
-                            "[]".to_string()
-                        } else {
-                            format!("[{}]", output.destinations.join(", "))
-                        };
-                        format!("  * {} -> {}", output.name, dests)
-                    })
+                node.output_activity.iter()
+                    .rev()
+                    .take(10)
+                    .map(|entry| format!("[{:.2}] {}: {}", entry.timestamp, entry.port_name, entry.data_summary))
                     .collect::<Vec<_>>()
                     .join("\n")
             }
         } else {
-            "  (definition not available)".to_string()
+            "  (waiting for data...)".to_string()
         };
 
         self.label(id!(inputs_content)).set_text(cx, &inputs_text);
@@ -512,6 +569,12 @@ impl NodeDetailPanelRef {
     pub fn set_node_definition(&self, cx: &mut Cx, node_id: &str, inputs: Vec<NodeInput>, outputs: Vec<NodeOutput>) {
         if let Some(mut inner) = self.borrow_mut() {
             inner.set_node_definition(cx, node_id, inputs, outputs);
+        }
+    }
+
+    pub fn add_io_activity(&self, cx: &mut Cx, node_id: &str, port_name: &str, port_type: &str, timestamp: f64, data_summary: &str) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.add_io_activity(cx, node_id, port_name, port_type, timestamp, data_summary);
         }
     }
 

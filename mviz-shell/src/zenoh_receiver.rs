@@ -208,12 +208,21 @@ impl ZenohReceiver {
                         // Handle log messages specially
                         if msg.msg_type == "log" {
                             if let Ok(log_data) = serde_json::from_value::<LogData>(msg.data.clone()) {
+                                // Build metadata, including port info if present
+                                let mut metadata = log_data.metadata.unwrap_or_default();
+                                if let Some(port) = &log_data.port {
+                                    metadata.insert("port".to_string(), port.clone());
+                                }
+                                if let Some(port_type) = &log_data.port_type {
+                                    metadata.insert("port_type".to_string(), port_type.clone());
+                                }
+
                                 let log_entry = LogEntry {
                                     level: LogLevel::from_str(&log_data.level),
                                     message: log_data.message,
                                     node_id: log_data.node_id.clone(),
                                     timestamp: msg.timestamp.unwrap_or(0.0),
-                                    metadata: log_data.metadata.unwrap_or_default(),
+                                    metadata,
                                 };
 
                                 // Track discovered nodes
