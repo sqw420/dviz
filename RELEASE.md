@@ -1,5 +1,37 @@
 # MViz Release Notes
 
+## v0.2.6 (2026-01-09)
+
+### Enhancement: Fully Dynamic I/O Activity Matching
+
+Removed hardcoded path-following-specific node name mappings from the bridge. The I/O activity source matching is now fully dynamic and works with any dataflow.
+
+#### Changes
+
+**mviz-rerun-bridge/src/main.rs:**
+- Removed hardcoded input-to-node mappings:
+  - ~~`sim_pose` / `sim_state` → `bicycle_model`~~
+  - ~~`steering_cmd` / `throttle_cmd` / `target_point` / `waypoints` → `simple_planner`~~
+  - ~~`imu_msg` → `imu_synthesizer`~~
+- Now uses generic fallback: `(source_node, input_id)` for all inputs
+- Changed `publish_log` calls to use dynamic `source_node` instead of hardcoded names
+
+#### How It Works
+
+For any dataflow, the bridge now:
+1. If `input_id` contains `/` (e.g., `bicycle_model/sim_pose`): parses source node from it
+2. Otherwise: uses the first part of `input_id` as source node
+
+#### Recommendation for New Dataflows
+
+For best results, use Dora's standard input format:
+```yaml
+inputs:
+  pose: source_node/output_name  # Contains '/' - parses correctly
+```
+
+---
+
 ## v0.2.5 (2026-01-09)
 
 ### Enhancement: Debug Logging and Unit Tests for I/O Activity

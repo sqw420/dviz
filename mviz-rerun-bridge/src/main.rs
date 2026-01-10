@@ -414,13 +414,8 @@ async fn main() -> Result<()> {
                     let parts: Vec<&str> = input_id.split('/').collect();
                     (parts[0], *parts.get(1).unwrap_or(&input_id))
                 } else {
-                    // Try to match known input mappings
-                    match input_id {
-                        "sim_pose" | "sim_state" => ("bicycle_model", input_id),
-                        "steering_cmd" | "throttle_cmd" | "target_point" | "waypoints" => ("simple_planner", input_id),
-                        "imu_msg" => ("imu_synthesizer", input_id),
-                        _ => (source_node, input_id),
-                    }
+                    // Generic fallback: use source_node parsed from input_id
+                    (source_node, input_id)
                 };
                 publish_io_activity(
                     &session,
@@ -466,7 +461,7 @@ async fn main() -> Result<()> {
                         if *count % 50 == 1 {
                             let msg = format!("Vehicle at ({:.2}, {:.2}), heading {:.1}°, v={:.2}m/s",
                                 x, y, theta.to_degrees(), velocity);
-                            publish_log(&session, &topic_prefix, timestamp, "INFO", &msg, "bicycle_model").await;
+                            publish_log(&session, &topic_prefix, timestamp, "INFO", &msg, source_node).await;
                         }
 
                         // Add to accumulated trajectory
@@ -602,7 +597,7 @@ async fn main() -> Result<()> {
                         // Log waypoint updates periodically
                         if *count % 100 == 1 {
                             let msg = format!("Path updated with {} waypoints", points.len());
-                            publish_log(&session, &topic_prefix, timestamp, "INFO", &msg, "simple_planner").await;
+                            publish_log(&session, &topic_prefix, timestamp, "INFO", &msg, source_node).await;
                         }
 
                         let header = MvizMessage {
