@@ -1,23 +1,21 @@
 # MViz Release Notes
 
-## v0.3.5 (2026-01-09)
+## v0.3.6 (2026-01-09)
 
-### Enhancement: Draggable Splitter and Green Status Indicator
+### Fix: Revert to Fixed Layout + Green Status Emoji
 
-Added working draggable splitter for the left panel and improved status visibility with colored emoji.
+Reverted to stable fixed-width layout (Splitter widget has rendering bugs). Kept green emoji status indicator.
 
 #### Changes
 
 **mviz-shell/src/app.rs:**
-- Single-level Splitter for left panel (avoids nested Splitter issue)
-- Left panel (slot `a`): Resizable with default 280px width
-- Right section (slot `b`): Contains center NodeDetailPanel + fixed-width right panel
-- Draggable divider between left and center panels
+- Reverted to fixed-width three-column View layout
+- Left panel: 280px, Center: flexible, Right: 280px
+- Note: Makepad Splitter widget causes blank screen - not usable
 
 **mviz-widgets/src/dataflow_graph.rs:**
-- Changed status icon from `●`/`○` to `🟢`/`⚪` colored emoji
-- Changed status text from `ACTIVE`/`idle` to `RUN`/`---`
-- Green circle emoji (🟢) now clearly indicates active nodes
+- Green emoji (🟢) for active nodes, white (⚪) for idle
+- Status text: `[RUN]` / `[---]`
 
 #### Display Format
 
@@ -25,12 +23,13 @@ Added working draggable splitter for the left panel and improved status visibili
   ┌────────────────────┐
   │ 🟢 bicycle_model [RUN] │
   └────────────────────┘
-     ↓ 2 output(s)
-
-  ┌────────────────────┐
-  │ ⚪ simple_planner [---] │
-  └────────────────────┘
 ```
+
+---
+
+## v0.3.5 (2026-01-09) - BROKEN
+
+**Do not use** - Splitter still causes blank screen.
 
 ---
 
