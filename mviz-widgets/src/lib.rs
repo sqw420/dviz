@@ -9,6 +9,7 @@
 //! - Toolbar for main application toolbar
 //! - LogPanel for system log display with filtering
 //! - NodeDetailPanel for node inspection with I/O and logs
+//! - DataflowGraphWidget for visualizing the Dora dataflow graph
 
 use makepad_widgets::*;
 
@@ -20,6 +21,7 @@ pub mod properties_panel;
 pub mod toolbar;
 pub mod log_panel;
 pub mod node_detail_panel;
+pub mod dataflow_graph;
 
 // Re-exports
 pub use displays_panel::{DisplayInfo, DisplayType, DisplayListItem, DisplaysPanel, DisplaysPanelAction, DisplaysPanelDisplayOps, DisplaysPanelWidgetRefExt};
@@ -27,6 +29,7 @@ pub use properties_panel::{Property, PropertyValue, PropertiesPanel, PropertiesP
 pub use toolbar::{FrameSelector, Toolbar};
 pub use log_panel::{LogPanel, LogPanelAction, LogDisplayEntry, LogPanelRef, LogPanelWidgetRefExt};
 pub use node_detail_panel::{NodeDetailPanel, NodeDetailPanelAction, NodeDetailPanelRef, NodeDetailPanelWidgetRefExt, NodeInput, NodeOutput};
+pub use dataflow_graph::{DataflowGraphWidget, DataflowGraphAction, DataflowGraphWidgetRef};
 
 pub fn live_design(cx: &mut Cx) {
     theme::live_design(cx);
@@ -37,4 +40,5 @@ pub fn live_design(cx: &mut Cx) {
     toolbar::live_design(cx);
     log_panel::live_design(cx);
     node_detail_panel::live_design(cx);
+    dataflow_graph::live_design(cx);
 }

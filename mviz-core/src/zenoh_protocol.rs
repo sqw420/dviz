@@ -343,6 +343,61 @@ pub struct DataflowDefinition {
     pub nodes: Vec<NodeDefinition>,
 }
 
+// ============================================================================
+// Dynamic Graph Discovery Types (for runtime graph visualization)
+// ============================================================================
+
+/// Node status in the dataflow graph
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum GraphNodeStatus {
+    /// Node is active (receiving/sending messages)
+    Active,
+    /// Node is idle (no recent activity)
+    #[default]
+    Idle,
+    /// Node has errors
+    Error,
+}
+
+/// A node in the dynamically discovered dataflow graph
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GraphNode {
+    /// Node ID
+    pub id: String,
+    /// Current status
+    #[serde(default)]
+    pub status: GraphNodeStatus,
+    /// Last activity timestamp (seconds since start)
+    #[serde(default)]
+    pub last_seen: f64,
+}
+
+/// An edge (connection) in the dataflow graph
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GraphEdge {
+    /// Source node ID
+    pub from_node: String,
+    /// Source output port name
+    pub from_port: String,
+    /// Target node ID
+    pub to_node: String,
+    /// Target input port name
+    pub to_port: String,
+}
+
+/// Graph update message - sent periodically by the bridge
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GraphUpdate {
+    /// All discovered nodes
+    pub nodes: Vec<GraphNode>,
+    /// All discovered edges
+    pub edges: Vec<GraphEdge>,
+    /// Update timestamp
+    #[serde(default)]
+    pub timestamp: f64,
+}
+
 /// Binary payload formats
 pub mod binary_formats {
     /// Points: x,y,z as f32 (12 bytes per point)

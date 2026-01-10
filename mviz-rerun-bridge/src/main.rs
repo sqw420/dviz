@@ -34,7 +34,7 @@ use dora_node_api::{DoraNode, Event, arrow::array::Float32Array};
 use eyre::Result;
 use mviz_core::zenoh_protocol::*;
 use std::env;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 /// Parse dataflow YAML and return node definitions (for periodic republishing)
@@ -274,6 +274,122 @@ fn format_values_summary(values: &[f32], max_values: usize) -> String {
     }
 }
 
+// ============================================================================
+// Dynamic Graph Discovery
+// ============================================================================
+
+/// Tracks discovered dataflow graph from message patterns
+struct GraphState {
+    /// Discovered node IDs
+    nodes: HashSet<String>,
+    /// Discovered edges (from_node, from_port, to_node, to_port)
+    edges: HashSet<(String, String, String, String)>,
+    /// Last activity time per node
+    node_activity: HashMap<String, f64>,
+}
+
+impl GraphState {
+    fn new() -> Self {
+        Self {
+            nodes: HashSet::new(),
+            edges: HashSet::new(),
+            node_activity: HashMap::new(),
+        }
+    }
+
+    /// Record activity from an input message
+    /// input_id format: "source_node/output_port" or just "output_name"
+    fn record_input(&mut self, input_id: &str, timestamp: f64) {
+        // Always add mviz_bridge as a node
+        self.nodes.insert("mviz_bridge".to_string());
+        self.node_activity.insert("mviz_bridge".to_string(), timestamp);
+
+        // Parse source node and port from input_id
+        if input_id.contains('/') {
+            let parts: Vec<&str> = input_id.split('/').collect();
+            if parts.len() >= 2 {
+                let source_node = parts[0].to_string();
+                let source_port = parts[1].to_string();
+
+                // Add source node
+                self.nodes.insert(source_node.clone());
+                self.node_activity.insert(source_node.clone(), timestamp);
+
+                // Add edge: source_node/source_port -> mviz_bridge/input_id
+                self.edges.insert((
+                    source_node,
+                    source_port,
+                    "mviz_bridge".to_string(),
+                    input_id.to_string(),
+                ));
+            }
+        } else {
+            // Simple input name - treat as coming from unknown source
+            // Still useful to track that mviz_bridge receives this input
+            self.nodes.insert(input_id.to_string());
+            self.node_activity.insert(input_id.to_string(), timestamp);
+        }
+    }
+
+    /// Build a GraphUpdate message
+    fn to_graph_update(&self, timestamp: f64) -> GraphUpdate {
+        let nodes: Vec<GraphNode> = self.nodes.iter().map(|id| {
+            let last_seen = *self.node_activity.get(id).unwrap_or(&0.0);
+            let status = if timestamp - last_seen < 2.0 {
+                GraphNodeStatus::Active
+            } else {
+                GraphNodeStatus::Idle
+            };
+            GraphNode {
+                id: id.clone(),
+                status,
+                last_seen,
+            }
+        }).collect();
+
+        let edges: Vec<GraphEdge> = self.edges.iter().map(|(from_node, from_port, to_node, to_port)| {
+            GraphEdge {
+                from_node: from_node.clone(),
+                from_port: from_port.clone(),
+                to_node: to_node.clone(),
+                to_port: to_port.clone(),
+            }
+        }).collect();
+
+        GraphUpdate {
+            nodes,
+            edges,
+            timestamp,
+        }
+    }
+}
+
+/// Publish graph update to Zenoh
+async fn publish_graph_update(
+    session: &zenoh::Session,
+    topic_prefix: &str,
+    graph_state: &GraphState,
+    timestamp: f64,
+) {
+    let graph_update = graph_state.to_graph_update(timestamp);
+
+    let msg = MvizMessage {
+        msg_type: "graph_update".to_string(),
+        timestamp: Some(timestamp),
+        data: serde_json::to_value(&graph_update).unwrap_or_default(),
+        format: None,
+        count: None,
+    };
+
+    let topic = format!("{}/graph", topic_prefix);
+    if let Err(e) = session.put(&topic, serialize_message(&msg, None)).await {
+        log::warn!("Failed to publish graph update: {}", e);
+    } else {
+        log::debug!("Published graph update: {} nodes, {} edges",
+            graph_update.nodes.len(), graph_update.edges.len());
+    }
+}
+
 #[tokio::main(flavor = "multi_thread", worker_threads = 1)]
 async fn main() -> Result<()> {
     env_logger::init();
@@ -348,6 +464,11 @@ async fn main() -> Result<()> {
     // Track message counts per source node for logging
     let mut node_msg_counts: HashMap<String, u64> = HashMap::new();
 
+    // Dynamic graph discovery state
+    let mut graph_state = GraphState::new();
+    let mut last_graph_publish = std::time::Instant::now();
+    const GRAPH_PUBLISH_INTERVAL: std::time::Duration = std::time::Duration::from_secs(2);
+
     // Main event loop - handle ANY input generically
     while let Some(event) = events.recv() {
         // Periodically republish node definitions for late-joining subscribers
@@ -355,6 +476,14 @@ async fn main() -> Result<()> {
             publish_node_definitions(&session, &topic_prefix, &node_definitions).await;
             last_def_publish = std::time::Instant::now();
         }
+
+        // Periodically publish graph updates
+        if last_graph_publish.elapsed() >= GRAPH_PUBLISH_INTERVAL {
+            let timestamp = start_time.elapsed().as_secs_f64();
+            publish_graph_update(&session, &topic_prefix, &graph_state, timestamp).await;
+            last_graph_publish = std::time::Instant::now();
+        }
+
         log::info!("Received event: {:?}", std::mem::discriminant(&event));
         match event {
             Event::Input { id, metadata: _, data } => {
@@ -362,6 +491,9 @@ async fn main() -> Result<()> {
                 frame_count += 1;
                 let timestamp = start_time.elapsed().as_secs_f64();
                 log::info!("Input event: id={}, data_type={}", input_id, data.data_type());
+
+                // Record input for graph discovery
+                graph_state.record_input(input_id, timestamp);
 
                 // Extract source node from input_id (format: "node_name/output_name" or just "output_name")
                 let source_node = input_id.split('/').next().unwrap_or(input_id);

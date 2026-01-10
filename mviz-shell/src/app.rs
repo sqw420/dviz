@@ -6,7 +6,8 @@
 use makepad_widgets::*;
 use mviz_rerun_bridge::{RerunBridge, RerunConfig, SensorSimulator};
 use mviz_displays::laser_scan::simulate_laser_scan;
-use mviz_widgets::{DisplaysPanelAction, DisplayType, DisplaysPanelWidgetRefExt, PropertiesPanelWidgetRefExt, LogPanelAction, LogDisplayEntry, LogPanelWidgetRefExt, NodeDetailPanelAction, NodeDetailPanelWidgetRefExt, NodeInput, NodeOutput};
+use mviz_widgets::{DisplaysPanelAction, DisplayType, DisplaysPanelWidgetRefExt, PropertiesPanelWidgetRefExt, LogPanelAction, LogDisplayEntry, LogPanelWidgetRefExt, NodeDetailPanelAction, NodeDetailPanelWidgetRefExt, NodeInput, NodeOutput, DataflowGraphAction};
+use mviz_widgets::dataflow_graph::DataflowGraphWidgetWidgetRefExt;
 use crate::dora_receiver::{DoraReceiver, DoraMessage, DoraData};
 use crate::zenoh_receiver::{ZenohReceiver, ZenohMessage, VisData, parse_points_xyz_f32};
 use mviz_core::zenoh_protocol::{Points3DData, Boxes3DData, Arrows3DData, LineStrips3DData, Transform3DData, ScalarData, LogLevel, binary_formats};
@@ -43,6 +44,7 @@ live_design! {
     use mviz_widgets::toolbar::Toolbar;
     use mviz_widgets::log_panel::LogPanel;
     use mviz_widgets::node_detail_panel::NodeDetailPanel;
+    use mviz_widgets::dataflow_graph::DataflowGraphWidget;
 
     // App icon
     MVIZ_ICON = dep("crate://self/resources/icons/viz.svg")
@@ -182,87 +184,10 @@ live_design! {
                                 width: Fill, height: 300
                             }
 
-                            // Sensor data panels (from original app)
-                            imu_panel = <RoundedView> {
-                                width: Fill, height: Fit
-                                flow: Down
-                                padding: 12
-                                spacing: 6
-                                show_bg: true
-                                draw_bg: { color: #252525, border_radius: 8.0 }
-
-                                <Label> {
-                                    text: "IMU Sensor"
-                                    draw_text: { color: #ffffff, text_style: { font_size: 12.0 } }
-                                }
-
-                                imu_accel = <Label> {
-                                    text: "Accel: 0.00, 0.00, 9.81"
-                                    draw_text: { color: #a0a0a0, text_style: { font_size: 10.0 } }
-                                }
-
-                                imu_gyro = <Label> {
-                                    text: "Gyro: 0.00, 0.00, 0.00"
-                                    draw_text: { color: #a0a0a0, text_style: { font_size: 10.0 } }
-                                }
+                            // Dataflow Graph (replaces IMU/Vehicle/Stats panels)
+                            dataflow_graph = <DataflowGraphWidget> {
+                                width: Fill, height: Fill
                             }
-
-                            // Vehicle state
-                            vehicle_panel = <RoundedView> {
-                                width: Fill, height: Fit
-                                flow: Down
-                                padding: 12
-                                spacing: 6
-                                show_bg: true
-                                draw_bg: { color: #252525, border_radius: 8.0 }
-
-                                <Label> {
-                                    text: "Vehicle State"
-                                    draw_text: { color: #ffffff, text_style: { font_size: 12.0 } }
-                                }
-
-                                vehicle_pos = <Label> {
-                                    text: "Position: 0.00, 0.00"
-                                    draw_text: { color: #a0a0a0, text_style: { font_size: 10.0 } }
-                                }
-
-                                vehicle_speed = <Label> {
-                                    text: "Speed: 0.00 m/s"
-                                    draw_text: { color: #a0a0a0, text_style: { font_size: 10.0 } }
-                                }
-                            }
-
-                            // Stats (moved from center panel)
-                            stats_panel = <RoundedView> {
-                                width: Fill, height: Fit
-                                flow: Down
-                                padding: 12
-                                spacing: 4
-                                show_bg: true
-                                draw_bg: { color: #252525, border_radius: 8.0 }
-
-                                <Label> {
-                                    text: "Statistics"
-                                    draw_text: { color: #ffffff, text_style: { font_size: 12.0 } }
-                                }
-
-                                sim_time = <Label> {
-                                    text: "Time: 0.00s"
-                                    draw_text: { color: #707070, text_style: { font_size: 10.0 } }
-                                }
-
-                                sim_fps = <Label> {
-                                    text: "Rate: 0 Hz"
-                                    draw_text: { color: #707070, text_style: { font_size: 10.0 } }
-                                }
-
-                                lidar_points = <Label> {
-                                    text: "Points: 0"
-                                    draw_text: { color: #707070, text_style: { font_size: 10.0 } }
-                                }
-                            }
-
-                            <View> { width: Fill, height: Fill }
 
                             // Status
                             status_label = <Label> {
@@ -473,6 +398,17 @@ impl MatchEvent for App {
                 _ => {}
             }
         }
+
+        // Handle DataflowGraphWidget actions
+        for action in actions {
+            match action.as_widget_action().cast::<DataflowGraphAction>() {
+                DataflowGraphAction::NodeClicked(node_id) => {
+                    debug_log(&format!("Graph node clicked: {}", node_id));
+                    self.ui.label(id!(status_label)).set_text(cx, &format!("Selected node: {}", node_id));
+                }
+                _ => {}
+            }
+        }
     }
 }
 
@@ -665,39 +601,7 @@ impl App {
             self.last_fps_time = sim_time;
         }
 
-        // Update UI labels
-        self.ui.label(id!(imu_accel)).set_text(cx,
-            &format!("Accel: {:.2}, {:.2}, {:.2}",
-                imu_data.linear_acceleration[0],
-                imu_data.linear_acceleration[1],
-                imu_data.linear_acceleration[2]));
-
-        self.ui.label(id!(imu_gyro)).set_text(cx,
-            &format!("Gyro: {:.2}, {:.2}, {:.2}",
-                imu_data.angular_velocity[0],
-                imu_data.angular_velocity[1],
-                imu_data.angular_velocity[2]));
-
-        self.ui.label(id!(vehicle_pos)).set_text(cx,
-            &format!("Position: {:.2}, {:.2}",
-                pose_data.position[0],
-                pose_data.position[1]));
-
-        let speed = (pose_data.velocity[0].powi(2) + pose_data.velocity[1].powi(2)).sqrt();
-        self.ui.label(id!(vehicle_speed)).set_text(cx,
-            &format!("Speed: {:.2} m/s", speed));
-
-        if let Some(ref lidar) = lidar_data {
-            self.ui.label(id!(lidar_points)).set_text(cx,
-                &format!("LiDAR Points: {}", lidar.points.len()));
-        }
-
-        self.ui.label(id!(sim_time)).set_text(cx,
-            &format!("Simulation Time: {:.2}s", sim_time));
-
-        self.ui.label(id!(sim_fps)).set_text(cx,
-            &format!("Update Rate: {:.0} Hz", self.fps));
-
+        // Update time display (other labels removed with IMU/Vehicle/Stats panels)
         self.ui.label(id!(time_label)).set_text(cx,
             &format!("{:.2}s", sim_time));
 
@@ -767,8 +671,7 @@ impl App {
             Ok(()) => {
                 debug_log("LaserScan logged successfully!");
                 let sim_status = if self.simulation_running { " (Sim running)" } else { " (Click Play for sim)" };
-                self.ui.label(id!(status_label)).set_text(cx, &format!("LaserScan: 360 points logged{}", sim_status));
-                self.ui.label(id!(lidar_points)).set_text(cx, &format!("Laser Points: {}", cloud.len()));
+                self.ui.label(id!(status_label)).set_text(cx, &format!("LaserScan: {} points logged{}", cloud.len(), sim_status));
             }
             Err(e) => {
                 debug_log(&format!("LaserScan log error: {}", e));
@@ -1332,23 +1235,6 @@ impl App {
     fn update_from_dora(&mut self, cx: &mut Cx) {
         let data = &self.dora_data;
 
-        // Update UI labels from Dora data
-        if let Some(ref imu) = data.imu {
-            self.ui.label(id!(imu_accel)).set_text(cx,
-                &format!("Accel: {:.2}, {:.2}, {:.2}",
-                    imu.accel[0], imu.accel[1], imu.accel[2]));
-            self.ui.label(id!(imu_gyro)).set_text(cx,
-                &format!("Gyro: {:.2}, {:.2}, {:.2}",
-                    imu.gyro[0], imu.gyro[1], imu.gyro[2]));
-        }
-
-        if let Some(ref pose) = data.pose {
-            self.ui.label(id!(vehicle_pos)).set_text(cx,
-                &format!("Position: {:.2}, {:.2}", pose.x, pose.y));
-            self.ui.label(id!(vehicle_speed)).set_text(cx,
-                &format!("Speed: {:.2} m/s", pose.velocity));
-        }
-
         // Update FPS counter
         let sim_time = data.frame_count as f64 * 0.02; // ~50Hz
         if sim_time - self.last_fps_time >= 1.0 {
@@ -1356,14 +1242,9 @@ impl App {
             self.last_fps_time = sim_time;
         }
 
-        self.ui.label(id!(sim_time)).set_text(cx,
-            &format!("Simulation Time: {:.2}s", sim_time));
-        self.ui.label(id!(sim_fps)).set_text(cx,
-            &format!("Update Rate: {:.0} Hz", self.fps));
+        // Update time display (other labels removed with IMU/Vehicle/Stats panels)
         self.ui.label(id!(time_label)).set_text(cx,
             &format!("{:.2}s", sim_time));
-        self.ui.label(id!(lidar_points)).set_text(cx,
-            &format!("Dora Frames: {}", data.frame_count));
 
         // Log to Rerun if connected
         if let Some(bridge) = &self.rerun_bridge {
@@ -1510,12 +1391,10 @@ impl App {
                         self.log_vis_data_to_rerun(bridge, &vis_data);
                     }
 
-                    // Update UI periodically
+                    // Log periodically
                     if self.zenoh_message_count % 100 == 1 {
                         debug_log(&format!("Zenoh: {} messages, latest: {} @ {}",
                             self.zenoh_message_count, vis_data.msg_type, vis_data.entity_path));
-                        self.ui.label(id!(lidar_points)).set_text(cx,
-                            &format!("Messages: {}", self.zenoh_message_count));
                     }
 
                     // Update time display
@@ -1619,6 +1498,24 @@ impl App {
                         self.ui.log_panel(id!(log_panel)).set_discovered_nodes(cx, nodes.clone());
                         self.ui.node_detail_panel(id!(node_detail_panel)).set_discovered_nodes(cx, nodes);
                     }
+                }
+
+                ZenohMessage::GraphUpdate(graph_update) => {
+                    debug_log(&format!("Received graph update: {} nodes, {} edges",
+                        graph_update.nodes.len(), graph_update.edges.len()));
+
+                    // Convert to widget format
+                    let nodes: Vec<(String, bool)> = graph_update.nodes.iter()
+                        .map(|n| (n.id.clone(), n.status == mviz_core::zenoh_protocol::GraphNodeStatus::Active))
+                        .collect();
+
+                    let edges: Vec<(String, String, String, String)> = graph_update.edges.iter()
+                        .map(|e| (e.from_node.clone(), e.from_port.clone(), e.to_node.clone(), e.to_port.clone()))
+                        .collect();
+
+                    // Update the dataflow graph widget
+                    self.ui.dataflow_graph_widget(id!(dataflow_graph))
+                        .update_from_graph_update(cx, nodes, edges, graph_update.timestamp);
                 }
             }
         }
@@ -1780,13 +1677,9 @@ impl App {
     }
 
     /// Update UI from Zenoh data (now handled in process_zenoh_messages)
-    fn update_from_zenoh(&mut self, cx: &mut Cx) {
+    fn update_from_zenoh(&mut self, _cx: &mut Cx) {
         // All data is now logged directly in process_zenoh_messages via log_vis_data_to_rerun
-        // This function only updates periodic UI elements
-        self.ui.label(id!(sim_time)).set_text(cx,
-            &format!("Messages: {}", self.zenoh_message_count));
-        self.ui.label(id!(sim_fps)).set_text(cx,
-            &format!("Update Rate: {:.0} Hz", self.fps));
+        // UI labels for stats were removed with the IMU/Vehicle/Stats panels
     }
 }
 

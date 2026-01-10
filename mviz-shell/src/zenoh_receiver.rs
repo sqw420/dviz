@@ -4,7 +4,7 @@
 //! to be logged to Rerun. It doesn't know about specific applications.
 
 use crossbeam_channel::{Receiver, Sender, bounded};
-use mviz_core::zenoh_protocol::{MvizMessage, LogData, LogEntry, LogLevel, NodeDefinition, parse_message};
+use mviz_core::zenoh_protocol::{MvizMessage, LogData, LogEntry, LogLevel, NodeDefinition, GraphUpdate, parse_message};
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -55,6 +55,8 @@ pub enum ZenohMessage {
     NodeDiscovered(String),
     /// Node definition received from bridge (inputs/outputs)
     NodeDef(NodeDefinition),
+    /// Graph update received (dynamic graph discovery)
+    GraphUpdate(GraphUpdate),
     /// Connected to Zenoh
     Connected,
     /// Disconnected or error
@@ -266,6 +268,24 @@ impl ZenohReceiver {
                                 }
 
                                 let _ = tx.send(ZenohMessage::NodeDef(node_def));
+                            }
+                        } else if msg.msg_type == "graph_update" {
+                            // Handle dynamic graph update messages
+                            if let Ok(graph_update) = serde_json::from_value::<GraphUpdate>(msg.data.clone()) {
+                                debug_log(&format!("Received graph update: {} nodes, {} edges",
+                                    graph_update.nodes.len(), graph_update.edges.len()));
+
+                                // Track all nodes from the graph update
+                                {
+                                    let mut nodes = discovered_nodes.write();
+                                    for node in &graph_update.nodes {
+                                        if nodes.insert(node.id.clone()) {
+                                            let _ = tx.send(ZenohMessage::NodeDiscovered(node.id.clone()));
+                                        }
+                                    }
+                                }
+
+                                let _ = tx.send(ZenohMessage::GraphUpdate(graph_update));
                             }
                         } else {
                             // Regular visualization data
