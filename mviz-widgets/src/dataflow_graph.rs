@@ -1,9 +1,10 @@
 //! Dataflow Graph Widget
 //!
-//! Displays the Dora dataflow graph with nodes and connections.
+//! Displays the Dora dataflow graph with visual node boxes and edge lines.
 //! Nodes are discovered dynamically from the bridge via Zenoh.
 
 use makepad_widgets::*;
+use std::collections::HashMap;
 
 live_design! {
     use link::theme::*;
@@ -11,6 +12,55 @@ live_design! {
     use link::widgets::*;
 
     use crate::theme::*;
+
+    // Node box shader
+    pub DrawNodeBox = {{DrawNodeBox}} {
+        fn pixel(self) -> vec4 {
+            let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+
+            // Rounded rectangle for node
+            sdf.box(
+                1.0,
+                1.0,
+                self.rect_size.x - 2.0,
+                self.rect_size.y - 2.0,
+                4.0
+            );
+
+            // Fill color based on active state
+            let fill_color = mix(
+                vec4(0.2, 0.25, 0.3, 1.0),   // Idle: dark blue-gray
+                vec4(0.15, 0.45, 0.35, 1.0), // Active: green tint
+                self.is_active
+            );
+
+            // Border color based on selection
+            let border_color = mix(
+                vec4(0.35, 0.4, 0.45, 1.0),  // Normal border
+                vec4(0.4, 0.7, 1.0, 1.0),    // Selected: bright blue
+                self.is_selected
+            );
+
+            sdf.fill_keep(fill_color);
+            sdf.stroke(border_color, 1.5);
+
+            return sdf.result;
+        }
+    }
+
+    // Edge line shader
+    pub DrawEdgeLine = {{DrawEdgeLine}} {
+        fn pixel(self) -> vec4 {
+            let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+
+            // Simple horizontal line
+            let mid_y = self.rect_size.y * 0.5;
+            sdf.rect(0.0, mid_y - 0.5, self.rect_size.x, 1.0);
+            sdf.fill(vec4(0.4, 0.5, 0.55, 0.8));
+
+            return sdf.result;
+        }
+    }
 
     // Dataflow Graph Widget
     pub DataflowGraphWidget = {{DataflowGraphWidget}} <RoundedView> {
@@ -55,7 +105,7 @@ live_design! {
             draw_bg: { color: (DIVIDER) }
         }
 
-        // Graph canvas area
+        // Graph canvas area - using a custom overlay approach
         graph_canvas = <View> {
             width: Fill, height: Fill
             show_bg: true
@@ -66,19 +116,18 @@ live_design! {
                     let pos = self.pos * self.rect_size;
                     let grid_x = mod(pos.x, grid_size);
                     let grid_y = mod(pos.y, grid_size);
-                    let line_width = 1.0;
 
                     let base_color = vec4(0.12, 0.12, 0.12, 1.0);
                     let grid_color = vec4(0.16, 0.16, 0.16, 1.0);
 
-                    if grid_x < line_width || grid_y < line_width {
+                    if grid_x < 1.0 || grid_y < 1.0 {
                         return grid_color;
                     }
                     return base_color;
                 }
             }
 
-            // Graph content rendered as text (simple approach like LogPanel)
+            // Graph content rendered as styled text list
             graph_content = <Label> {
                 width: Fill, height: Fit
                 margin: 12
@@ -91,6 +140,24 @@ live_design! {
             }
         }
     }
+}
+
+// ============================================================================
+// DRAW SHADERS
+// ============================================================================
+
+#[derive(Live, LiveHook, LiveRegister)]
+#[repr(C)]
+pub struct DrawNodeBox {
+    #[deref] draw_super: DrawQuad,
+    #[live] is_active: f32,
+    #[live] is_selected: f32,
+}
+
+#[derive(Live, LiveHook, LiveRegister)]
+#[repr(C)]
+pub struct DrawEdgeLine {
+    #[deref] draw_super: DrawQuad,
 }
 
 // ============================================================================
@@ -176,10 +243,10 @@ impl Widget for DataflowGraphWidget {
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
         // Update node count label
         self.view.label(id!(node_count)).set_text(cx,
-            &format!("{} nodes", self.nodes.len()));
+            &format!("{} nodes, {} edges", self.nodes.len(), self.edges.len()));
 
-        // Render graph as text (simple approach)
-        let graph_text = self.format_graph_text();
+        // Render graph as visual ASCII art style
+        let graph_text = self.format_visual_graph();
         self.view.label(id!(graph_content)).set_text(cx, &graph_text);
 
         self.view.draw_walk(cx, scope, walk)
@@ -187,56 +254,162 @@ impl Widget for DataflowGraphWidget {
 }
 
 impl DataflowGraphWidget {
-    /// Format graph as text for display
-    fn format_graph_text(&self) -> String {
+    /// Format graph as visual ASCII-style diagram
+    fn format_visual_graph(&self) -> String {
         if self.nodes.is_empty() {
             return "Waiting for dataflow graph...\n\nConnect to a running Dora dataflow to see the node graph.".to_string();
         }
 
         let mut text = String::new();
 
-        // Section: Nodes
-        text.push_str("=== NODES ===\n\n");
+        // Build node position map for edge rendering
+        let mut node_positions: HashMap<String, usize> = HashMap::new();
+        for (i, node) in self.nodes.iter().enumerate() {
+            node_positions.insert(node.id.clone(), i);
+        }
+
+        // Group edges by target node for better visualization
+        let mut incoming_edges: HashMap<String, Vec<(&str, &str)>> = HashMap::new();
+        for edge in &self.edges {
+            incoming_edges
+                .entry(edge.to_node.clone())
+                .or_default()
+                .push((&edge.from_node, &edge.from_port));
+        }
+
+        // Draw each node with ASCII box
         for node in &self.nodes {
-            let status = if node.is_active { "[ACTIVE]" } else { "[idle]" };
-            let selected = if self.selected_node.as_deref() == Some(&node.id) { " <<" } else { "" };
-            text.push_str(&format!("  {} {}{}\n", status, node.id, selected));
-        }
+            // Status indicator
+            let status_icon = if node.is_active { "●" } else { "○" };
+            let status_color = if node.is_active { "ACTIVE" } else { "idle" };
 
-        // Section: Connections
-        if !self.edges.is_empty() {
-            text.push_str("\n=== CONNECTIONS ===\n\n");
-            for edge in &self.edges {
-                text.push_str(&format!("  {} / {} --> {} / {}\n",
-                    edge.from_node, edge.from_port,
-                    edge.to_node, edge.to_port));
+            // Selection marker
+            let selected = if self.selected_node.as_deref() == Some(&node.id) {
+                " ◀"
+            } else {
+                ""
+            };
+
+            // Draw incoming edges as arrows
+            if let Some(sources) = incoming_edges.get(&node.id) {
+                for (from_node, from_port) in sources {
+                    text.push_str(&format!("     {} / {}\n", from_node, from_port));
+                    text.push_str("           ↓\n");
+                }
             }
+
+            // Draw node box
+            let name_len = node.id.len().max(8);
+            let box_width = name_len + 8;
+            let border: String = "─".repeat(box_width);
+
+            text.push_str(&format!("  ┌{}┐\n", border));
+            text.push_str(&format!("  │ {} {:<width$} [{}]{} │\n",
+                status_icon,
+                node.id,
+                status_color,
+                selected,
+                width = name_len));
+            text.push_str(&format!("  └{}┘\n", border));
+
+            // Show outgoing connections count
+            let outgoing: Vec<_> = self.edges.iter()
+                .filter(|e| e.from_node == node.id)
+                .collect();
+            if !outgoing.is_empty() {
+                text.push_str(&format!("     ↓ {} output(s)\n", outgoing.len()));
+            }
+
+            text.push_str("\n");
         }
 
-        // Stats
-        text.push_str(&format!("\n--- {} nodes, {} edges ---", self.nodes.len(), self.edges.len()));
+        // Stats footer
+        text.push_str(&format!("━━━ {} nodes, {} edges ━━━", self.nodes.len(), self.edges.len()));
         if self.last_update > 0.0 {
-            text.push_str(&format!("\nLast update: {:.1}s", self.last_update));
+            text.push_str(&format!("\nUpdated: {:.1}s ago", self.last_update));
         }
 
         text
     }
 
+    /// Compute layout for nodes (hierarchical based on edges)
+    fn compute_layout(&mut self) {
+        if self.nodes.is_empty() {
+            return;
+        }
+
+        // Build dependency graph to determine levels
+        let mut levels: HashMap<String, usize> = HashMap::new();
+        let mut node_set: std::collections::HashSet<String> = self.nodes.iter().map(|n| n.id.clone()).collect();
+
+        // Find source nodes (no incoming edges)
+        let targets: std::collections::HashSet<_> = self.edges.iter().map(|e| e.to_node.clone()).collect();
+        let sources: Vec<_> = node_set.iter()
+            .filter(|n| !targets.contains(*n))
+            .cloned()
+            .collect();
+
+        // BFS to assign levels
+        let mut queue: Vec<(String, usize)> = sources.iter().map(|s| (s.clone(), 0)).collect();
+        while let Some((node_id, level)) = queue.pop() {
+            let current_level = levels.entry(node_id.clone()).or_insert(level);
+            if level > *current_level {
+                *current_level = level;
+            }
+
+            // Find successors
+            for edge in &self.edges {
+                if edge.from_node == node_id {
+                    queue.push((edge.to_node.clone(), level + 1));
+                }
+            }
+            node_set.remove(&node_id);
+        }
+
+        // Assign remaining nodes (disconnected) to level 0
+        for node in &node_set {
+            levels.insert(node.clone(), 0);
+        }
+
+        // Group nodes by level
+        let mut level_nodes: HashMap<usize, Vec<String>> = HashMap::new();
+        for (node_id, level) in &levels {
+            level_nodes.entry(*level).or_default().push(node_id.clone());
+        }
+
+        // Compute positions
+        let node_width = 140.0_f32;
+        let node_height = 36.0_f32;
+        let h_spacing = 180.0_f32;
+        let v_spacing = 60.0_f32;
+        let padding = 20.0_f32;
+
+        let max_level = levels.values().max().copied().unwrap_or(0);
+        for node in &mut self.nodes {
+            if let Some(&level) = levels.get(&node.id) {
+                let nodes_at_level = level_nodes.get(&level).map(|v| v.len()).unwrap_or(1);
+                let idx = level_nodes.get(&level)
+                    .and_then(|v| v.iter().position(|n| n == &node.id))
+                    .unwrap_or(0);
+
+                node.width = node_width;
+                node.height = node_height;
+                node.x = padding + (level as f32) * h_spacing;
+                node.y = padding + (idx as f32) * v_spacing;
+            }
+        }
+    }
+
     /// Update graph from a GraphUpdate message
     pub fn update_from_graph_update(&mut self, cx: &mut Cx, nodes: Vec<(String, bool)>, edges: Vec<(String, String, String, String)>, timestamp: f64) {
-        // Simple layout: arrange nodes in a column
-        let node_width = 120.0;
-        let node_height = 30.0;
-        let padding = 20.0;
-        let spacing = 50.0;
-
-        self.nodes = nodes.iter().enumerate().map(|(i, (id, is_active))| {
+        // Create nodes
+        self.nodes = nodes.iter().map(|(id, is_active)| {
             GraphDisplayNode {
                 id: id.clone(),
-                x: padding,
-                y: padding + (i as f32) * (node_height + spacing),
-                width: node_width,
-                height: node_height,
+                x: 0.0,
+                y: 0.0,
+                width: 140.0,
+                height: 36.0,
                 is_active: *is_active,
             }
         }).collect();
@@ -249,6 +422,9 @@ impl DataflowGraphWidget {
                 to_port: to_port.clone(),
             }
         }).collect();
+
+        // Compute visual layout
+        self.compute_layout();
 
         self.last_update = timestamp;
         self.redraw(cx);

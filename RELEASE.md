@@ -1,5 +1,42 @@
 # MViz Release Notes
 
+## v0.3.2 (2026-01-09)
+
+### Enhancement: Improved Dataflow Graph Visualization
+
+Enhanced the DataflowGraphWidget with shader definitions for future graphical rendering and improved graph topology parsing.
+
+#### Changes
+
+**mviz-widgets/src/dataflow_graph.rs:**
+- Added `DrawNodeBox` shader with rounded rectangle, active/selected states
+- Added `DrawEdgeLine` shader for edge rendering
+- Enhanced ASCII-style visual display with box borders (`┌─┐└─┘`)
+- Improved edge display with arrows and connection counts
+- Added `compute_layout()` for hierarchical node positioning
+- Added HashMap for node position tracking
+
+**mviz-rerun-bridge/src/main.rs:**
+- Enhanced `GraphState` to initialize from node definitions (`init_from_definitions()`)
+- Added `input_source_map` for tracking input-to-source mappings
+- Improved edge parsing from YAML input format (`source_node/output_port`)
+- Better handling of timer inputs and simple source names
+
+#### Graph Display Format
+
+```
+     bicycle_model / sim_pose
+           ↓
+  ┌───────────────────────────┐
+  │ ● simple_planner [ACTIVE] ◀ │
+  └───────────────────────────┘
+     ↓ 2 output(s)
+
+━━━ 3 nodes, 2 edges ━━━
+```
+
+---
+
 ## v0.3.1 (2026-01-09)
 
 ### Feature: Embedded Dora Dataflow Graph Visualization

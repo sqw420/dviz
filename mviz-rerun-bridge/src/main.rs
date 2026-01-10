@@ -278,14 +278,16 @@ fn format_values_summary(values: &[f32], max_values: usize) -> String {
 // Dynamic Graph Discovery
 // ============================================================================
 
-/// Tracks discovered dataflow graph from message patterns
+/// Tracks dataflow graph from node definitions and runtime activity
 struct GraphState {
-    /// Discovered node IDs
+    /// All nodes from definitions
     nodes: HashSet<String>,
-    /// Discovered edges (from_node, from_port, to_node, to_port)
+    /// All edges from definitions (from_node, from_port, to_node, to_port)
     edges: HashSet<(String, String, String, String)>,
     /// Last activity time per node
     node_activity: HashMap<String, f64>,
+    /// Input ID to source node mapping (from definitions)
+    input_source_map: HashMap<String, (String, String)>, // input_name -> (source_node, source_port)
 }
 
 impl GraphState {
@@ -294,40 +296,71 @@ impl GraphState {
             nodes: HashSet::new(),
             edges: HashSet::new(),
             node_activity: HashMap::new(),
+            input_source_map: HashMap::new(),
         }
     }
 
+    /// Initialize graph from node definitions (parses complete topology from YAML)
+    fn init_from_definitions(&mut self, definitions: &[NodeDefinition]) {
+        for node_def in definitions {
+            // Add node
+            self.nodes.insert(node_def.id.clone());
+
+            // Process inputs to build edges and input mapping
+            for input in &node_def.inputs {
+                // Source format: "source_node/output_port"
+                if input.source.contains('/') {
+                    let parts: Vec<&str> = input.source.split('/').collect();
+                    if parts.len() >= 2 {
+                        let source_node = parts[0].to_string();
+                        let source_port = parts[1].to_string();
+
+                        // Add source node
+                        self.nodes.insert(source_node.clone());
+
+                        // Add edge
+                        self.edges.insert((
+                            source_node.clone(),
+                            source_port.clone(),
+                            node_def.id.clone(),
+                            input.name.clone(),
+                        ));
+
+                        // Build input mapping for this node
+                        if node_def.id == "mviz_bridge" {
+                            self.input_source_map.insert(
+                                input.name.clone(),
+                                (source_node, source_port),
+                            );
+                        }
+                    }
+                } else if input.source.starts_with("dora/timer/") {
+                    // Timer input - don't create edge, just note the node exists
+                } else {
+                    // Simple source name - treat as node
+                    self.nodes.insert(input.source.clone());
+                }
+            }
+        }
+
+        log::info!("GraphState initialized from definitions: {} nodes, {} edges",
+            self.nodes.len(), self.edges.len());
+    }
+
     /// Record activity from an input message
-    /// input_id format: "source_node/output_port" or just "output_name"
     fn record_input(&mut self, input_id: &str, timestamp: f64) {
-        // Always add mviz_bridge as a node
-        self.nodes.insert("mviz_bridge".to_string());
+        // Always mark mviz_bridge as active
         self.node_activity.insert("mviz_bridge".to_string(), timestamp);
 
-        // Parse source node and port from input_id
-        if input_id.contains('/') {
+        // Look up source node from mapping (built from definitions)
+        if let Some((source_node, _source_port)) = self.input_source_map.get(input_id) {
+            self.node_activity.insert(source_node.clone(), timestamp);
+        } else if input_id.contains('/') {
+            // Fallback: parse from input_id if it has source/port format
             let parts: Vec<&str> = input_id.split('/').collect();
             if parts.len() >= 2 {
-                let source_node = parts[0].to_string();
-                let source_port = parts[1].to_string();
-
-                // Add source node
-                self.nodes.insert(source_node.clone());
-                self.node_activity.insert(source_node.clone(), timestamp);
-
-                // Add edge: source_node/source_port -> mviz_bridge/input_id
-                self.edges.insert((
-                    source_node,
-                    source_port,
-                    "mviz_bridge".to_string(),
-                    input_id.to_string(),
-                ));
+                self.node_activity.insert(parts[0].to_string(), timestamp);
             }
-        } else {
-            // Simple input name - treat as coming from unknown source
-            // Still useful to track that mviz_bridge receives this input
-            self.nodes.insert(input_id.to_string());
-            self.node_activity.insert(input_id.to_string(), timestamp);
         }
     }
 
@@ -427,8 +460,10 @@ async fn main() -> Result<()> {
     } else {
         // Try common paths
         let possible_paths = [
+            "dataflow-mapping.yml",
             "dataflow-path-following.yml",
             "dataflow.yml",
+            "../dataflow-mapping.yml",
             "../dataflow-path-following.yml",
             "../dataflow.yml",
         ];
@@ -464,8 +499,11 @@ async fn main() -> Result<()> {
     // Track message counts per source node for logging
     let mut node_msg_counts: HashMap<String, u64> = HashMap::new();
 
-    // Dynamic graph discovery state
+    // Dynamic graph discovery state - initialize from node definitions
     let mut graph_state = GraphState::new();
+    if !node_definitions.is_empty() {
+        graph_state.init_from_definitions(&node_definitions);
+    }
     let mut last_graph_publish = std::time::Instant::now();
     const GRAPH_PUBLISH_INTERVAL: std::time::Duration = std::time::Duration::from_secs(2);
 
