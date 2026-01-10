@@ -68,3 +68,4 @@ nodes:
     env:
       ZENOH_TOPIC_PREFIX: mviz
       RUST_LOG: info
+      DATAFLOW_PATH: /Users/nupylot/Public/mviz/dataflow-path-following.yml
