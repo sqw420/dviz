@@ -492,11 +492,31 @@ impl Widget for PropertiesPanel {
 }
 
 impl PropertiesPanel {
-    /// Set the display to show properties for
-    pub fn set_display(&mut self, display_id: Option<u64>, name: &str, display_type: &str) {
+    /// Set the display to show properties for (with UI update)
+    pub fn set_display(&mut self, cx: &mut Cx, display_id: Option<u64>, name: &str, display_type: &str) {
         self.current_display_id = display_id;
-        // In a real implementation, we would update the UI here
-        let _ = (name, display_type);
+
+        // Update header labels
+        self.label(id!(header.display_name)).set_text(cx, name);
+        self.label(id!(header.display_type)).set_text(cx, display_type);
+
+        // Update status based on selection
+        if display_id.is_some() {
+            self.label(id!(status_label)).set_text(cx, "Status: OK");
+        } else {
+            self.label(id!(status_label)).set_text(cx, "Status: -");
+        }
+
+        self.redraw(cx);
+    }
+
+    /// Clear selection (show "No Selection")
+    pub fn clear_selection(&mut self, cx: &mut Cx) {
+        self.current_display_id = None;
+        self.label(id!(header.display_name)).set_text(cx, "No Selection");
+        self.label(id!(header.display_type)).set_text(cx, "Select a display to view properties");
+        self.label(id!(status_label)).set_text(cx, "Status: -");
+        self.redraw(cx);
     }
 
     /// Set properties to display
@@ -507,5 +527,25 @@ impl PropertiesPanel {
     /// Get current display ID
     pub fn current_display_id(&self) -> Option<u64> {
         self.current_display_id
+    }
+}
+
+// ============================================================================
+// WIDGET REF EXTENSIONS
+// ============================================================================
+
+impl PropertiesPanelRef {
+    /// Set the display to show properties for
+    pub fn set_display(&self, cx: &mut Cx, display_id: Option<u64>, name: &str, display_type: &str) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.set_display(cx, display_id, name, display_type);
+        }
+    }
+
+    /// Clear selection
+    pub fn clear_selection(&self, cx: &mut Cx) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.clear_selection(cx);
+        }
     }
 }

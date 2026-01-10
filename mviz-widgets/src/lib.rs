@@ -23,7 +23,7 @@ pub mod node_detail_panel;
 
 // Re-exports
 pub use displays_panel::{DisplayInfo, DisplayType, DisplayListItem, DisplaysPanel, DisplaysPanelAction, DisplaysPanelDisplayOps, DisplaysPanelWidgetRefExt};
-pub use properties_panel::{Property, PropertyValue, PropertiesPanel};
+pub use properties_panel::{Property, PropertyValue, PropertiesPanel, PropertiesPanelRef, PropertiesPanelWidgetRefExt};
 pub use toolbar::{FrameSelector, Toolbar};
 pub use log_panel::{LogPanel, LogPanelAction, LogDisplayEntry, LogPanelRef, LogPanelWidgetRefExt};
 pub use node_detail_panel::{NodeDetailPanel, NodeDetailPanelAction, NodeDetailPanelRef, NodeDetailPanelWidgetRefExt, NodeInput, NodeOutput};

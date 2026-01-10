@@ -1,5 +1,46 @@
 # MViz Release Notes
 
+## v0.2.8 (2026-01-09)
+
+### Fix: Toolbar UI and PropertiesPanel Integration
+
+Fixed three UI issues reported after v0.2.7:
+
+#### 1. Fixed Frame Dropdown
+- Initialized dropdown with common coordinate frames: world, map, odom, base_link, base_footprint
+- Added frame change handler showing status message
+
+#### 2. File/View Menu Buttons
+- Added click handlers with status messages (placeholder for future menus)
+- File: "Open, Save, Export (coming soon)"
+- View: "Panels, Layout, Reset (coming soon)"
+
+#### 3. PropertiesPanel Selection
+- Added `set_display()` method to PropertiesPanel with Cx parameter
+- Added `clear_selection()` method
+- Added PropertiesPanelRef extension methods
+- Fixed `on_display_selected()` to properly update PropertiesPanel header
+- Now shows display name and type when selected
+
+#### Files Changed
+
+**mviz-widgets/src/properties_panel.rs:**
+- `set_display(cx, display_id, name, type)` - updates header labels
+- `clear_selection(cx)` - resets to "No Selection"
+- `PropertiesPanelRef` extension impl
+
+**mviz-widgets/src/lib.rs:**
+- Export PropertiesPanelRef, PropertiesPanelWidgetRefExt
+
+**mviz-shell/src/app.rs:**
+- Import PropertiesPanelWidgetRefExt
+- Initialize frame_dropdown in handle_startup
+- Add file_btn/view_btn click handlers
+- Add frame_dropdown change handler
+- Fix on_display_selected to use properties_panel.set_display()
+
+---
+
 ## v0.2.7 (2026-01-09)
 
 ### Feature: DisplaysPanel Implementation (RViz-Style)

@@ -6,7 +6,7 @@
 use makepad_widgets::*;
 use mviz_rerun_bridge::{RerunBridge, RerunConfig, SensorSimulator};
 use mviz_displays::laser_scan::simulate_laser_scan;
-use mviz_widgets::{DisplaysPanelAction, DisplayType, DisplaysPanelWidgetRefExt, LogPanelAction, LogDisplayEntry, LogPanelWidgetRefExt, NodeDetailPanelAction, NodeDetailPanelWidgetRefExt, NodeInput, NodeOutput};
+use mviz_widgets::{DisplaysPanelAction, DisplayType, DisplaysPanelWidgetRefExt, PropertiesPanelWidgetRefExt, LogPanelAction, LogDisplayEntry, LogPanelWidgetRefExt, NodeDetailPanelAction, NodeDetailPanelWidgetRefExt, NodeInput, NodeOutput};
 use crate::dora_receiver::{DoraReceiver, DoraMessage, DoraData};
 use crate::zenoh_receiver::{ZenohReceiver, ZenohMessage, VisData, parse_points_xyz_f32};
 use mviz_core::zenoh_protocol::{Points3DData, Boxes3DData, Arrows3DData, LineStrips3DData, Transform3DData, ScalarData, LogLevel, binary_formats};
@@ -363,12 +363,43 @@ impl MatchEvent for App {
         // System log state
         self.discovered_nodes = HashSet::new();
         self.log_entry_count = 0;
+
+        // Initialize Fixed Frame dropdown with common coordinate frames
+        let frame_labels = vec![
+            "world".to_string(),
+            "map".to_string(),
+            "odom".to_string(),
+            "base_link".to_string(),
+            "base_footprint".to_string(),
+        ];
+        self.ui.drop_down(id!(frame_dropdown)).set_labels(cx, frame_labels);
+
         // Request first frame
         cx.start_interval(0.02); // 50 Hz update rate
         debug_log("Timer started at 50Hz");
     }
 
     fn handle_actions(&mut self, cx: &mut Cx, actions: &Actions) {
+        // File menu button
+        if self.ui.button(id!(file_btn)).clicked(actions) {
+            self.ui.label(id!(status_label)).set_text(cx, "File menu: Open, Save, Export (coming soon)");
+            debug_log("File menu clicked");
+        }
+
+        // View menu button
+        if self.ui.button(id!(view_btn)).clicked(actions) {
+            self.ui.label(id!(status_label)).set_text(cx, "View menu: Panels, Layout, Reset (coming soon)");
+            debug_log("View menu clicked");
+        }
+
+        // Frame dropdown changed
+        if let Some(index) = self.ui.drop_down(id!(frame_dropdown)).changed(actions) {
+            let frames = ["world", "map", "odom", "base_link", "base_footprint"];
+            let frame_name = frames.get(index).unwrap_or(&"world");
+            self.ui.label(id!(status_label)).set_text(cx, &format!("Fixed Frame: {}", frame_name));
+            debug_log(&format!("Fixed frame changed to: {}", frame_name));
+        }
+
         // Spawn Rerun button (standalone mode)
         if self.ui.button(id!(launch_btn)).clicked(actions) {
             self.launch_rerun(cx);
@@ -848,14 +879,17 @@ impl App {
         let displays_panel = self.ui.displays_panel(id!(displays_panel));
         if let Some(inner) = displays_panel.borrow() {
             if let Some(display) = inner.get_display(id) {
-                // Update properties panel with selected display
-                self.ui.label(id!(header.display_name)).set_text(cx, &display.name);
-                self.ui.label(id!(header.display_type)).set_text(cx,
-                    &format!("Type: {}", display.display_type.name()));
+                // Update properties panel with selected display info
+                let display_name = display.name.clone();
+                let type_str = format!("Type: {}", display.display_type.name());
+                drop(inner); // Release borrow before calling other methods
+
+                self.ui.properties_panel(id!(properties_panel))
+                    .set_display(cx, Some(id), &display_name, &type_str);
 
                 // Update status label
                 self.ui.label(id!(status_label)).set_text(cx,
-                    &format!("Selected: {}", display.name));
+                    &format!("Selected: {}", display_name));
             }
         }
         self.ui.redraw(cx);
