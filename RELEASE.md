@@ -1,5 +1,39 @@
 # MViz Release Notes
 
+## v0.3.5 (2026-01-09)
+
+### Enhancement: Draggable Splitter and Green Status Indicator
+
+Added working draggable splitter for the left panel and improved status visibility with colored emoji.
+
+#### Changes
+
+**mviz-shell/src/app.rs:**
+- Single-level Splitter for left panel (avoids nested Splitter issue)
+- Left panel (slot `a`): Resizable with default 280px width
+- Right section (slot `b`): Contains center NodeDetailPanel + fixed-width right panel
+- Draggable divider between left and center panels
+
+**mviz-widgets/src/dataflow_graph.rs:**
+- Changed status icon from `●`/`○` to `🟢`/`⚪` colored emoji
+- Changed status text from `ACTIVE`/`idle` to `RUN`/`---`
+- Green circle emoji (🟢) now clearly indicates active nodes
+
+#### Display Format
+
+```
+  ┌────────────────────┐
+  │ 🟢 bicycle_model [RUN] │
+  └────────────────────┘
+     ↓ 2 output(s)
+
+  ┌────────────────────┐
+  │ ⚪ simple_planner [---] │
+  └────────────────────┘
+```
+
+---
+
 ## v0.3.4 (2026-01-09)
 
 ### Fix: Restore Three-Column Layout

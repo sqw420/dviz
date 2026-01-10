@@ -280,9 +280,9 @@ impl DataflowGraphWidget {
 
         // Draw each node with ASCII box
         for node in &self.nodes {
-            // Status indicator
-            let status_icon = if node.is_active { "●" } else { "○" };
-            let status_color = if node.is_active { "ACTIVE" } else { "idle" };
+            // Status indicator - use colored emoji for visibility
+            let status_icon = if node.is_active { "🟢" } else { "⚪" };
+            let status_text = if node.is_active { "RUN" } else { "---" };
 
             // Selection marker
             let selected = if self.selected_node.as_deref() == Some(&node.id) {
@@ -308,7 +308,7 @@ impl DataflowGraphWidget {
             text.push_str(&format!("  │ {} {:<width$} [{}]{} │\n",
                 status_icon,
                 node.id,
-                status_color,
+                status_text,
                 selected,
                 width = name_len));
             text.push_str(&format!("  └{}┘\n", border));

@@ -165,16 +165,16 @@ live_design! {
                     }
 
                     // ========================================================
-                    // MAIN CONTENT AREA - Three Column Layout
+                    // MAIN CONTENT AREA - Splitter Layout
                     // ========================================================
-                    content = <View> {
+                    content = <Splitter> {
                         width: Fill, height: Fill
-                        flow: Right
-                        spacing: 0
+                        axis: Horizontal
+                        align: FromA(280.0)
 
-                        // LEFT PANEL - Displays (fixed width)
-                        left_panel = <View> {
-                            width: 280, height: Fill
+                        // LEFT PANEL - Displays
+                        a = <View> {
+                            width: Fill, height: Fill
                             flow: Down
                             spacing: 8
                             padding: 8
@@ -186,7 +186,7 @@ live_design! {
                                 width: Fill, height: 300
                             }
 
-                            // Dataflow Graph (replaces IMU/Vehicle/Stats panels)
+                            // Dataflow Graph
                             dataflow_graph = <DataflowGraphWidget> {
                                 width: Fill, height: Fill
                             }
@@ -198,48 +198,48 @@ live_design! {
                             }
                         }
 
-                        // Left divider
-                        <View> {
-                            width: 1, height: Fill
-                            show_bg: true
-                            draw_bg: { color: #333 }
-                        }
-
-                        // CENTER - Node Detail Panel (fills remaining)
-                        center_panel = <View> {
+                        // CENTER + RIGHT (remaining space)
+                        b = <View> {
                             width: Fill, height: Fill
-                            padding: 8
-                            show_bg: true
-                            draw_bg: { color: #1a1a1a }
+                            flow: Right
+                            spacing: 0
 
-                            node_detail_panel = <NodeDetailPanel> {
+                            // CENTER - Node Detail Panel
+                            center_panel = <View> {
                                 width: Fill, height: Fill
-                            }
-                        }
+                                padding: 8
+                                show_bg: true
+                                draw_bg: { color: #1a1a1a }
 
-                        // Right divider
-                        <View> {
-                            width: 1, height: Fill
-                            show_bg: true
-                            draw_bg: { color: #333 }
-                        }
-
-                        // RIGHT PANEL - Properties + System Log (fixed width)
-                        right_panel = <View> {
-                            width: 280, height: Fill
-                            flow: Down
-                            spacing: 8
-                            padding: 8
-                            show_bg: true
-                            draw_bg: { color: #1e1e1e }
-
-                            properties_panel = <PropertiesPanel> {
-                                width: Fill, height: 200
+                                node_detail_panel = <NodeDetailPanel> {
+                                    width: Fill, height: Fill
+                                }
                             }
 
-                            // System Log Panel
-                            log_panel = <LogPanel> {
-                                width: Fill, height: Fill
+                            // Right divider
+                            <View> {
+                                width: 1, height: Fill
+                                show_bg: true
+                                draw_bg: { color: #333 }
+                            }
+
+                            // RIGHT PANEL - Properties + System Log (fixed width)
+                            right_panel = <View> {
+                                width: 280, height: Fill
+                                flow: Down
+                                spacing: 8
+                                padding: 8
+                                show_bg: true
+                                draw_bg: { color: #1e1e1e }
+
+                                properties_panel = <PropertiesPanel> {
+                                    width: Fill, height: 200
+                                }
+
+                                // System Log Panel
+                                log_panel = <LogPanel> {
+                                    width: Fill, height: Fill
+                                }
                             }
                         }
                     }
