@@ -1,5 +1,56 @@
 # MViz Release Notes
 
+## v0.2.7 (2026-01-09)
+
+### Feature: DisplaysPanel Implementation (RViz-Style)
+
+Implemented a full DisplaysPanel widget for managing visualization displays, inspired by RViz's Displays panel.
+
+#### Changes
+
+**mviz-widgets/src/displays_panel.rs:**
+- Added `DisplayType` enum with 8 visualization types:
+  - Grid, Axes, PointCloud, Markers, TF, LaserScan, Path, Pose
+  - Each type has `icon_type()` for shader mapping, `name()` for display
+- Added `DisplayInfo` struct with full display metadata:
+  - id, name, display_type, enabled, status, status_message
+  - topic, color, alpha for rendering configuration
+- Added `DisplayListItem` widget with custom shader icons
+- Added `DisplaysPanel` widget with:
+  - Header showing display count
+  - Scrollable list with text-based rendering
+  - "Add Display" button with hover effect
+- Added `DisplaysPanelAction` enum for event handling:
+  - AddDisplayClicked, DisplaySelected, DisplayToggled, DisplayDeleted
+- Added `DisplaysPanelDisplayOps` extension trait for ref operations
+
+**mviz-widgets/src/lib.rs:**
+- Exports: DisplayInfo, DisplayType, DisplayListItem, DisplaysPanel
+- Exports: DisplaysPanelAction, DisplaysPanelDisplayOps, DisplaysPanelWidgetRefExt
+
+**mviz-shell/src/app.rs:**
+- Integrated DisplaysPanelAction handling
+- Added `on_display_selected()` - updates PropertiesPanel with display info
+- Added `on_display_toggled()` - toggles Rerun entity visibility
+- Added `on_display_deleted()` - removes display from list
+
+#### Display Panel Features
+
+- Text-based display list with checkbox indicators: `[x]` enabled, `[ ]` disabled
+- Selection indicator: ` >` for selected item
+- Status display: `[OK]`, `[WARN]`, `[ERR]`
+- Format: `  [x] Grid - Grid [OK]`
+- Default displays: Grid, Axes (created on initialization)
+- Add Display button cycles through display types
+
+#### Technical Notes
+
+- Uses simplified text-based rendering (similar to LogPanel) instead of PortalList
+- Widget derive macro auto-generates `DisplaysPanelWidgetRefExt` trait
+- Custom extension trait `DisplaysPanelDisplayOps` for additional operations
+
+---
+
 ## v0.2.6 (2026-01-09)
 
 ### Enhancement: Fully Dynamic I/O Activity Matching

@@ -6,7 +6,7 @@
 use makepad_widgets::*;
 use mviz_rerun_bridge::{RerunBridge, RerunConfig, SensorSimulator};
 use mviz_displays::laser_scan::simulate_laser_scan;
-use mviz_widgets::{DisplaysPanelAction, LogPanelAction, LogDisplayEntry, LogPanelWidgetRefExt, NodeDetailPanelAction, NodeDetailPanelWidgetRefExt, NodeInput, NodeOutput};
+use mviz_widgets::{DisplaysPanelAction, DisplayType, DisplaysPanelWidgetRefExt, LogPanelAction, LogDisplayEntry, LogPanelWidgetRefExt, NodeDetailPanelAction, NodeDetailPanelWidgetRefExt, NodeInput, NodeOutput};
 use crate::dora_receiver::{DoraReceiver, DoraMessage, DoraData};
 use crate::zenoh_receiver::{ZenohReceiver, ZenohMessage, VisData, parse_points_xyz_f32};
 use mviz_core::zenoh_protocol::{Points3DData, Boxes3DData, Arrows3DData, LineStrips3DData, Transform3DData, ScalarData, LogLevel, binary_formats};
@@ -396,8 +396,20 @@ impl MatchEvent for App {
 
         // Handle DisplaysPanel actions
         for action in actions {
-            if let DisplaysPanelAction::AddDisplayClicked = action.as_widget_action().cast() {
-                self.add_display(cx);
+            match action.as_widget_action().cast::<DisplaysPanelAction>() {
+                DisplaysPanelAction::AddDisplayClicked => {
+                    self.add_display(cx);
+                }
+                DisplaysPanelAction::DisplaySelected(id) => {
+                    self.on_display_selected(cx, id);
+                }
+                DisplaysPanelAction::DisplayToggled(id, enabled) => {
+                    self.on_display_toggled(cx, id, enabled);
+                }
+                DisplaysPanelAction::DisplayDeleted(id) => {
+                    self.on_display_deleted(cx, id);
+                }
+                _ => {}
             }
         }
 
@@ -825,6 +837,85 @@ impl App {
             self.ui.label(id!(status_label)).set_text(cx, "Launch Rerun first, then Add Display");
             debug_log("Add Display: Rerun not connected");
         }
+        self.ui.redraw(cx);
+    }
+
+    /// Handle display selection - update PropertiesPanel
+    fn on_display_selected(&mut self, cx: &mut Cx, id: u64) {
+        debug_log(&format!("Display selected: id={}", id));
+
+        // Get display info from DisplaysPanel
+        let displays_panel = self.ui.displays_panel(id!(displays_panel));
+        if let Some(inner) = displays_panel.borrow() {
+            if let Some(display) = inner.get_display(id) {
+                // Update properties panel with selected display
+                self.ui.label(id!(header.display_name)).set_text(cx, &display.name);
+                self.ui.label(id!(header.display_type)).set_text(cx,
+                    &format!("Type: {}", display.display_type.name()));
+
+                // Update status label
+                self.ui.label(id!(status_label)).set_text(cx,
+                    &format!("Selected: {}", display.name));
+            }
+        }
+        self.ui.redraw(cx);
+    }
+
+    /// Handle display enable/disable toggle - update Rerun visibility
+    fn on_display_toggled(&mut self, cx: &mut Cx, id: u64, enabled: bool) {
+        debug_log(&format!("Display toggled: id={}, enabled={}", id, enabled));
+
+        // Get display info
+        let displays_panel = self.ui.displays_panel(id!(displays_panel));
+        if let Some(inner) = displays_panel.borrow() {
+            if let Some(display) = inner.get_display(id) {
+                let action = if enabled { "Enabled" } else { "Disabled" };
+                self.ui.label(id!(status_label)).set_text(cx,
+                    &format!("{}: {}", action, display.name));
+
+                // TODO: In a full implementation, we would toggle entity visibility in Rerun
+                // For now, we could clear/re-log the entity based on enabled state
+                if let Some(bridge) = &self.rerun_bridge {
+                    match display.display_type {
+                        DisplayType::Grid => {
+                            if enabled {
+                                let _ = bridge.log_ground_grid();
+                            }
+                            // Note: Rerun doesn't have direct hide/show API,
+                            // would need to use entity clear or blueprint
+                        }
+                        DisplayType::Axes => {
+                            if enabled {
+                                let _ = bridge.log(
+                                    "world/axes",
+                                    &rerun::Arrows3D::from_vectors([
+                                        [1.0, 0.0, 0.0],
+                                        [0.0, 1.0, 0.0],
+                                        [0.0, 0.0, 1.0],
+                                    ])
+                                    .with_origins([[0.0, 0.0, 0.0]; 3])
+                                    .with_colors([
+                                        rerun::Color::from_rgb(255, 0, 0),
+                                        rerun::Color::from_rgb(0, 255, 0),
+                                        rerun::Color::from_rgb(0, 0, 255),
+                                    ]),
+                                );
+                            }
+                        }
+                        _ => {
+                            // Other display types will be handled when receiving data
+                        }
+                    }
+                }
+            }
+        }
+        self.ui.redraw(cx);
+    }
+
+    /// Handle display deletion
+    fn on_display_deleted(&mut self, cx: &mut Cx, id: u64) {
+        debug_log(&format!("Display deleted: id={}", id));
+        self.ui.label(id!(status_label)).set_text(cx, "Display removed");
         self.ui.redraw(cx);
     }
 
