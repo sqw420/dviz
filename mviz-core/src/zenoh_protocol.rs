@@ -288,6 +288,55 @@ pub struct LogData {
     pub metadata: Option<std::collections::HashMap<String, String>>,
 }
 
+// ============================================================================
+// Node Definition Types (for dataflow graph inspection)
+// ============================================================================
+
+/// Node input port definition
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NodeInputDef {
+    /// Input port name
+    pub name: String,
+    /// Source in format "node_id/output_name"
+    pub source: String,
+}
+
+/// Node output port definition
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NodeOutputDef {
+    /// Output port name
+    pub name: String,
+    /// Destination node IDs that receive this output
+    #[serde(default)]
+    pub destinations: Vec<String>,
+}
+
+/// Complete node definition from dataflow YAML
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NodeDefinition {
+    /// Node ID
+    pub id: String,
+    /// Input ports
+    #[serde(default)]
+    pub inputs: Vec<NodeInputDef>,
+    /// Output ports
+    #[serde(default)]
+    pub outputs: Vec<NodeOutputDef>,
+    /// Node operator path (Python/Rust)
+    #[serde(default)]
+    pub operator: Option<String>,
+}
+
+/// Full dataflow definition with all nodes
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DataflowDefinition {
+    /// Dataflow name
+    #[serde(default)]
+    pub name: String,
+    /// All nodes in the dataflow
+    pub nodes: Vec<NodeDefinition>,
+}
+
 /// Binary payload formats
 pub mod binary_formats {
     /// Points: x,y,z as f32 (12 bytes per point)

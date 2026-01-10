@@ -1444,6 +1444,37 @@ impl App {
                         self.ui.node_detail_panel(id!(node_detail_panel)).set_discovered_nodes(cx, nodes);
                     }
                 }
+
+                ZenohMessage::NodeDef(node_def) => {
+                    debug_log(&format!("Received node definition: {} ({} inputs, {} outputs)",
+                        node_def.id, node_def.inputs.len(), node_def.outputs.len()));
+
+                    // Convert to widget types
+                    let inputs: Vec<NodeInput> = node_def.inputs.iter()
+                        .map(|i| NodeInput {
+                            name: i.name.clone(),
+                            source: i.source.clone(),
+                        })
+                        .collect();
+
+                    let outputs: Vec<NodeOutput> = node_def.outputs.iter()
+                        .map(|o| NodeOutput {
+                            name: o.name.clone(),
+                            destinations: o.destinations.clone(),
+                        })
+                        .collect();
+
+                    // Set definition on node detail panel
+                    self.ui.node_detail_panel(id!(node_detail_panel))
+                        .set_node_definition(cx, &node_def.id, inputs, outputs);
+
+                    // Also track as discovered node
+                    if self.discovered_nodes.insert(node_def.id.clone()) {
+                        let nodes: Vec<String> = self.discovered_nodes.iter().cloned().collect();
+                        self.ui.log_panel(id!(log_panel)).set_discovered_nodes(cx, nodes.clone());
+                        self.ui.node_detail_panel(id!(node_detail_panel)).set_discovered_nodes(cx, nodes);
+                    }
+                }
             }
         }
     }

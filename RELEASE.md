@@ -1,5 +1,62 @@
 # MViz Release Notes
 
+## v0.2.1 (2026-01-09)
+
+### Feature: Node Definition Publishing from Dataflow YAML
+
+The bridge now parses the dataflow YAML and publishes node definitions via Zenoh, enabling the NodeDetailPanel to display actual input/output ports for each node.
+
+#### Bridge Changes (mviz-rerun-bridge/src/main.rs)
+
+- Added `publish_dataflow_definitions()` - parses dataflow YAML and publishes node definitions
+- Parses both operator-style and direct inputs/outputs from YAML
+- Computes output destinations by searching for nodes that consume each output
+- Publishes to `{prefix}/definitions/{node_id}` topics
+- Auto-discovers dataflow YAML from `DATAFLOW_PATH` env or common paths
+
+#### Protocol Changes (mviz-core/src/zenoh_protocol.rs)
+
+- Added `NodeInputDef` struct: port name and source reference
+- Added `NodeOutputDef` struct: port name and destination list
+- Added `NodeDefinition` struct: complete node with inputs/outputs
+- Added `DataflowDefinition` struct: full dataflow graph
+
+#### Receiver Changes (mviz-shell/src/zenoh_receiver.rs)
+
+- Added `ZenohMessage::NodeDef(NodeDefinition)` variant
+- Handles `node_definition` message type from bridge
+- Tracks nodes from definitions in discovered_nodes
+
+#### App Integration (mviz-shell/src/app.rs)
+
+- Handles `ZenohMessage::NodeDef` in `process_zenoh_messages()`
+- Converts protocol types to widget types (NodeInput, NodeOutput)
+- Calls `set_node_definition()` on NodeDetailPanel
+
+#### Result
+
+When the bridge parses a dataflow like:
+```yaml
+nodes:
+  - id: bicycle_model
+    operator:
+      inputs:
+        tick: dora/timer/millis/20
+        steering_cmd: simple_planner/steering_cmd
+      outputs:
+        - sim_pose
+        - sim_state
+```
+
+The NodeDetailPanel will now show:
+```
+INPUTS:                          OUTPUTS:
+• tick (from: dora/timer/...)    • sim_pose -> [simple_planner, mviz_bridge]
+• steering_cmd (from: ...)       • sim_state -> [imu_synthesizer, ...]
+```
+
+---
+
 ## v0.2.0 (2026-01-09)
 
 ### Implementation: Node Detail Panel (Phase 7)

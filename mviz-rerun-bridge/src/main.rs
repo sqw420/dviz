@@ -35,6 +35,173 @@ use eyre::Result;
 use mviz_core::zenoh_protocol::*;
 use std::env;
 use std::collections::HashMap;
+use std::path::Path;
+
+/// Parse dataflow YAML and publish node definitions
+async fn publish_dataflow_definitions(
+    session: &zenoh::Session,
+    topic_prefix: &str,
+    dataflow_path: &str,
+) {
+    log::info!("Parsing dataflow YAML: {}", dataflow_path);
+
+    let yaml_content = match std::fs::read_to_string(dataflow_path) {
+        Ok(content) => content,
+        Err(e) => {
+            log::warn!("Failed to read dataflow YAML: {}", e);
+            return;
+        }
+    };
+
+    let yaml_value: serde_yaml::Value = match serde_yaml::from_str(&yaml_content) {
+        Ok(v) => v,
+        Err(e) => {
+            log::warn!("Failed to parse dataflow YAML: {}", e);
+            return;
+        }
+    };
+
+    // Build node definitions
+    let mut node_definitions: Vec<NodeDefinition> = Vec::new();
+
+    // First pass: collect all nodes and their outputs
+    let mut node_outputs: HashMap<String, Vec<String>> = HashMap::new();
+
+    if let Some(nodes) = yaml_value.get("nodes").and_then(|n| n.as_sequence()) {
+        for node in nodes {
+            if let Some(id) = node.get("id").and_then(|i| i.as_str()) {
+                let mut outputs = Vec::new();
+
+                // Get outputs from operator section
+                if let Some(op) = node.get("operator") {
+                    if let Some(out_list) = op.get("outputs").and_then(|o| o.as_sequence()) {
+                        for out in out_list {
+                            if let Some(out_str) = out.as_str() {
+                                outputs.push(out_str.to_string());
+                            }
+                        }
+                    }
+                }
+
+                node_outputs.insert(id.to_string(), outputs);
+            }
+        }
+    }
+
+    // Second pass: build complete definitions with inputs and destinations
+    if let Some(nodes) = yaml_value.get("nodes").and_then(|n| n.as_sequence()) {
+        for node in nodes {
+            if let Some(id) = node.get("id").and_then(|i| i.as_str()) {
+                let mut inputs: Vec<NodeInputDef> = Vec::new();
+                let mut outputs: Vec<NodeOutputDef> = Vec::new();
+                let mut operator_path: Option<String> = None;
+
+                // Get operator path
+                if let Some(op) = node.get("operator") {
+                    if let Some(python_path) = op.get("python").and_then(|p| p.as_str()) {
+                        operator_path = Some(python_path.to_string());
+                    } else if let Some(rust_path) = op.get("rust").and_then(|p| p.as_str()) {
+                        operator_path = Some(rust_path.to_string());
+                    }
+
+                    // Parse inputs
+                    if let Some(input_map) = op.get("inputs").and_then(|i| i.as_mapping()) {
+                        for (key, value) in input_map {
+                            if let (Some(name), Some(source)) = (key.as_str(), value.as_str()) {
+                                inputs.push(NodeInputDef {
+                                    name: name.to_string(),
+                                    source: source.to_string(),
+                                });
+                            }
+                        }
+                    }
+
+                    // Parse outputs and find destinations
+                    if let Some(out_list) = op.get("outputs").and_then(|o| o.as_sequence()) {
+                        for out in out_list {
+                            if let Some(out_name) = out.as_str() {
+                                // Find which nodes use this output
+                                let full_output = format!("{}/{}", id, out_name);
+                                let mut destinations: Vec<String> = Vec::new();
+
+                                // Search all other nodes' inputs for this output
+                                for other_node in yaml_value.get("nodes").and_then(|n| n.as_sequence()).unwrap_or(&vec![]) {
+                                    if let Some(other_id) = other_node.get("id").and_then(|i| i.as_str()) {
+                                        if let Some(other_op) = other_node.get("operator") {
+                                            if let Some(other_inputs) = other_op.get("inputs").and_then(|i| i.as_mapping()) {
+                                                for (_inp_name, inp_source) in other_inputs {
+                                                    if let Some(src) = inp_source.as_str() {
+                                                        if src == full_output {
+                                                            destinations.push(other_id.to_string());
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        // Also check direct inputs (non-operator format)
+                                        if let Some(direct_inputs) = other_node.get("inputs").and_then(|i| i.as_mapping()) {
+                                            for (_inp_name, inp_source) in direct_inputs {
+                                                if let Some(src) = inp_source.as_str() {
+                                                    if src == full_output {
+                                                        destinations.push(other_id.to_string());
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                outputs.push(NodeOutputDef {
+                                    name: out_name.to_string(),
+                                    destinations,
+                                });
+                            }
+                        }
+                    }
+                }
+
+                // Also check direct inputs (non-operator format)
+                if let Some(input_map) = node.get("inputs").and_then(|i| i.as_mapping()) {
+                    for (key, value) in input_map {
+                        if let (Some(name), Some(source)) = (key.as_str(), value.as_str()) {
+                            inputs.push(NodeInputDef {
+                                name: name.to_string(),
+                                source: source.to_string(),
+                            });
+                        }
+                    }
+                }
+
+                node_definitions.push(NodeDefinition {
+                    id: id.to_string(),
+                    inputs,
+                    outputs,
+                    operator: operator_path,
+                });
+            }
+        }
+    }
+
+    // Publish each node definition
+    for node_def in &node_definitions {
+        let msg = MvizMessage {
+            msg_type: "node_definition".to_string(),
+            timestamp: Some(0.0),
+            data: serde_json::to_value(node_def).unwrap_or_default(),
+            format: None,
+            count: None,
+        };
+        let topic = format!("{}/definitions/{}", topic_prefix, node_def.id);
+        if let Err(e) = session.put(&topic, serialize_message(&msg, None)).await {
+            log::warn!("Failed to publish node definition for {}: {}", node_def.id, e);
+        } else {
+            log::info!("Published definition for node: {} ({} inputs, {} outputs)",
+                node_def.id, node_def.inputs.len(), node_def.outputs.len());
+        }
+    }
+
+    log::info!("Published {} node definitions", node_definitions.len());
+}
 
 /// Publish a log message to Zenoh
 async fn publish_log(
@@ -87,6 +254,26 @@ async fn main() -> Result<()> {
 
     log::info!("Zenoh session opened successfully");
     log::info!("Topic prefix: {}", topic_prefix);
+
+    // Publish node definitions from dataflow YAML if available
+    if let Ok(dataflow_path) = env::var("DATAFLOW_PATH") {
+        publish_dataflow_definitions(&session, &topic_prefix, &dataflow_path).await;
+    } else {
+        // Try common paths
+        let possible_paths = [
+            "dataflow-path-following.yml",
+            "dataflow.yml",
+            "../dataflow-path-following.yml",
+            "../dataflow.yml",
+        ];
+        for path in &possible_paths {
+            if Path::new(path).exists() {
+                log::info!("Found dataflow at: {}", path);
+                publish_dataflow_definitions(&session, &topic_prefix, path).await;
+                break;
+            }
+        }
+    }
 
     // Publish bridge startup log
     publish_log(&session, &topic_prefix, 0.0, "INFO", "MViz bridge started, waiting for data...", "mviz_bridge").await;

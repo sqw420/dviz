@@ -4,7 +4,7 @@
 //! to be logged to Rerun. It doesn't know about specific applications.
 
 use crossbeam_channel::{Receiver, Sender, bounded};
-use mviz_core::zenoh_protocol::{MvizMessage, LogData, LogEntry, LogLevel, parse_message};
+use mviz_core::zenoh_protocol::{MvizMessage, LogData, LogEntry, LogLevel, NodeDefinition, parse_message};
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -53,6 +53,8 @@ pub enum ZenohMessage {
     Log(LogEntry),
     /// Node discovered (new node_id seen in logs)
     NodeDiscovered(String),
+    /// Node definition received from bridge (inputs/outputs)
+    NodeDef(NodeDefinition),
     /// Connected to Zenoh
     Connected,
     /// Disconnected or error
@@ -225,6 +227,23 @@ impl ZenohReceiver {
                                 }
 
                                 let _ = tx.send(ZenohMessage::Log(log_entry));
+                            }
+                        } else if msg.msg_type == "node_definition" {
+                            // Handle node definition messages
+                            if let Ok(node_def) = serde_json::from_value::<NodeDefinition>(msg.data.clone()) {
+                                debug_log(&format!("Received node definition: {} ({} inputs, {} outputs)",
+                                    node_def.id, node_def.inputs.len(), node_def.outputs.len()));
+
+                                // Also track as discovered node
+                                let is_new_node = {
+                                    let mut nodes = discovered_nodes.write();
+                                    nodes.insert(node_def.id.clone())
+                                };
+                                if is_new_node {
+                                    let _ = tx.send(ZenohMessage::NodeDiscovered(node_def.id.clone()));
+                                }
+
+                                let _ = tx.send(ZenohMessage::NodeDef(node_def));
                             }
                         } else {
                             // Regular visualization data
