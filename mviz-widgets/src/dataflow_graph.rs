@@ -105,7 +105,7 @@ live_design! {
             draw_bg: { color: (DIVIDER) }
         }
 
-        // Graph canvas area - using a custom overlay approach
+        // Graph canvas area - scrollable for large graphs
         graph_canvas = <View> {
             width: Fill, height: Fill
             show_bg: true
@@ -126,16 +126,17 @@ live_design! {
                     return base_color;
                 }
             }
+            scroll_bars: <ScrollBars> {}
 
             // Graph content rendered as styled text list
             graph_content = <Label> {
-                width: Fill, height: Fit
+                width: Fit, height: Fit
                 margin: 12
                 text: "Waiting for graph data..."
                 draw_text: {
                     color: (TEXT_SECONDARY)
                     text_style: <FONT_REGULAR>{ font_size: 11.0 }
-                    wrap: Word
+                    wrap: Line
                 }
             }
         }

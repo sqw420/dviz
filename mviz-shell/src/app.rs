@@ -165,19 +165,19 @@ live_design! {
                     }
 
                     // ========================================================
-                    // MAIN CONTENT AREA
+                    // MAIN CONTENT AREA - Resizable Splitter Layout
                     // ========================================================
-                    content = <View> {
+                    content = <Splitter> {
                         width: Fill, height: Fill
-                        flow: Right
-                        padding: 8
-                        spacing: 8
+                        axis: Horizontal
+                        align: FromA(280.0)
 
                         // LEFT PANEL - Displays
-                        left_panel = <View> {
-                            width: 280, height: Fill
+                        a = <View> {
+                            width: Fill, height: Fill
                             flow: Down
                             spacing: 8
+                            padding: 8
 
                             // Displays list
                             displays_panel = <DisplaysPanel> {
@@ -196,24 +196,37 @@ live_design! {
                             }
                         }
 
-                        // CENTER - Node Detail Panel
-                        node_detail_panel = <NodeDetailPanel> {
+                        // CENTER + RIGHT - Nested Splitter
+                        b = <Splitter> {
                             width: Fill, height: Fill
-                        }
+                            axis: Horizontal
+                            align: FromB(280.0)
 
-                        // RIGHT PANEL - Properties + System Log
-                        right_panel = <View> {
-                            width: 280, height: Fill
-                            flow: Down
-                            spacing: 8
+                            // CENTER - Node Detail Panel
+                            a = <View> {
+                                width: Fill, height: Fill
+                                padding: 8
 
-                            properties_panel = <PropertiesPanel> {
-                                width: Fill, height: 200
+                                node_detail_panel = <NodeDetailPanel> {
+                                    width: Fill, height: Fill
+                                }
                             }
 
-                            // System Log Panel
-                            log_panel = <LogPanel> {
+                            // RIGHT PANEL - Properties + System Log
+                            b = <View> {
                                 width: Fill, height: Fill
+                                flow: Down
+                                spacing: 8
+                                padding: 8
+
+                                properties_panel = <PropertiesPanel> {
+                                    width: Fill, height: 200
+                                }
+
+                                // System Log Panel
+                                log_panel = <LogPanel> {
+                                    width: Fill, height: Fill
+                                }
                             }
                         }
                     }
