@@ -1,5 +1,42 @@
 # MViz Release Notes
 
+## v0.2.5 (2026-01-09)
+
+### Enhancement: Debug Logging and Unit Tests for I/O Activity
+
+Added comprehensive debug logging and unit tests to trace and verify the I/O activity data flow from bridge to UI.
+
+#### Changes
+
+**mviz-core/src/zenoh_protocol.rs:**
+- Added 3 unit tests for LogData serialization:
+  - `test_log_data_with_port_info` - verifies I/O activity logs parse correctly
+  - `test_log_data_without_port_info` - verifies regular logs work without port fields
+  - `test_full_mviz_message_with_log` - tests full serialize/parse round-trip
+
+**mviz-shell/src/zenoh_receiver.rs:**
+- Added detailed debug logging for log message parsing:
+  - Logs raw `msg.data` JSON for each log message
+  - Logs parsed `LogData` fields: node_id, port, port_type, has_port_info
+
+**mviz-shell/src/app.rs:**
+- Added debug logging for I/O activity routing:
+  - Logs when I/O activity is detected and routed to NodeDetailPanel
+  - Logs metadata keys for regular logs (to diagnose missing port info)
+
+#### Debug Output Location
+
+Debug output written to:
+- Terminal: `[mviz]` prefixed lines
+- File: `/tmp/mviz_zenoh_debug.log`
+
+To check I/O activity flow:
+```bash
+grep -E "Log msg.data|LogData parsed|I/O activity" /tmp/mviz_zenoh_debug.log
+```
+
+---
+
 ## v0.2.4 (2026-01-09)
 
 ### Feature: Live I/O Activity Display in NodeDetailPanel

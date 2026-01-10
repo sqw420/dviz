@@ -387,3 +387,74 @@ pub fn serialize_message(header: &MvizMessage, binary: Option<&[u8]>) -> Vec<u8>
     }
     result
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_log_data_with_port_info() {
+        // Simulate what the bridge sends for I/O activity
+        let io_log_json = serde_json::json!({
+            "level": "INFO",
+            "message": "[0.12, 3.45]",
+            "node_id": "mviz_bridge",
+            "port": "imu_msg",
+            "port_type": "input",
+        });
+
+        let log_data: LogData = serde_json::from_value(io_log_json).unwrap();
+        assert_eq!(log_data.level, "INFO");
+        assert_eq!(log_data.node_id, "mviz_bridge");
+        assert_eq!(log_data.port, Some("imu_msg".to_string()));
+        assert_eq!(log_data.port_type, Some("input".to_string()));
+
+        let has_port_info = log_data.port.is_some() && log_data.port_type.is_some();
+        assert!(has_port_info, "Should detect port info in I/O activity log");
+    }
+
+    #[test]
+    fn test_log_data_without_port_info() {
+        // Regular log without port info
+        let log_json = serde_json::json!({
+            "level": "INFO",
+            "message": "Test message",
+            "node_id": "bicycle_model",
+        });
+
+        let log_data: LogData = serde_json::from_value(log_json).unwrap();
+        assert_eq!(log_data.port, None);
+        assert_eq!(log_data.port_type, None);
+
+        let has_port_info = log_data.port.is_some() && log_data.port_type.is_some();
+        assert!(!has_port_info, "Regular log should not have port info");
+    }
+
+    #[test]
+    fn test_full_mviz_message_with_log() {
+        // Test the full MvizMessage -> LogData flow
+        let msg = MvizMessage {
+            msg_type: "log".to_string(),
+            timestamp: Some(1.5),
+            data: serde_json::json!({
+                "level": "INFO",
+                "message": "[1.23, 4.56, 7.89]",
+                "node_id": "simple_planner",
+                "port": "waypoints",
+                "port_type": "output",
+            }),
+            format: None,
+            count: None,
+        };
+
+        // Serialize and parse back
+        let bytes = serialize_message(&msg, None);
+        let (parsed_msg, _binary) = parse_message(&bytes).unwrap();
+
+        assert_eq!(parsed_msg.msg_type, "log");
+
+        let log_data: LogData = serde_json::from_value(parsed_msg.data).unwrap();
+        assert_eq!(log_data.port, Some("waypoints".to_string()));
+        assert_eq!(log_data.port_type, Some("output".to_string()));
+    }
+}

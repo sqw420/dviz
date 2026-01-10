@@ -1412,8 +1412,10 @@ impl App {
                     }
 
                     // Check if this is an I/O activity log (has port info)
-                    if let (Some(port), Some(port_type)) = (&log_entry.metadata.get("port"), &log_entry.metadata.get("port_type")) {
+                    if let (Some(port), Some(port_type)) = (log_entry.metadata.get("port"), log_entry.metadata.get("port_type")) {
                         // This is I/O activity - add to the node detail panel's I/O display
+                        debug_log(&format!("I/O activity: node={}, port={}, type={}, msg={}",
+                            log_entry.node_id, port, port_type, log_entry.message));
                         self.ui.node_detail_panel(id!(node_detail_panel)).add_io_activity(
                             cx,
                             &log_entry.node_id,
@@ -1423,6 +1425,11 @@ impl App {
                             &log_entry.message,
                         );
                     } else {
+                        // Debug: Show what's in metadata for logs without port info
+                        if self.log_entry_count % 100 == 1 {
+                            debug_log(&format!("Regular log: node={}, metadata keys={:?}",
+                                log_entry.node_id, log_entry.metadata.keys().collect::<Vec<_>>()));
+                        }
                         // Regular log entry - add to log panels
                         let level_num = match log_entry.level {
                             LogLevel::Debug => 0,

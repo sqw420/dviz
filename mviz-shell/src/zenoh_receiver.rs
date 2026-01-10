@@ -207,14 +207,27 @@ impl ZenohReceiver {
 
                         // Handle log messages specially
                         if msg.msg_type == "log" {
+                            // Debug: show raw log data first
+                            debug_log(&format!("Log msg.data: {}", serde_json::to_string(&msg.data).unwrap_or_default()));
+
                             if let Ok(log_data) = serde_json::from_value::<LogData>(msg.data.clone()) {
                                 // Build metadata, including port info if present
                                 let mut metadata = log_data.metadata.unwrap_or_default();
+                                let has_port_info = log_data.port.is_some() && log_data.port_type.is_some();
+
+                                // Debug: always show port info status
+                                debug_log(&format!("LogData parsed: node={}, port={:?}, port_type={:?}, has_port_info={}",
+                                    log_data.node_id, log_data.port, log_data.port_type, has_port_info));
+
                                 if let Some(port) = &log_data.port {
                                     metadata.insert("port".to_string(), port.clone());
                                 }
                                 if let Some(port_type) = &log_data.port_type {
                                     metadata.insert("port_type".to_string(), port_type.clone());
+                                }
+                                if has_port_info {
+                                    debug_log(&format!("Zenoh: I/O activity log received: node={}, port={:?}, type={:?}",
+                                        log_data.node_id, log_data.port, log_data.port_type));
                                 }
 
                                 let log_entry = LogEntry {
