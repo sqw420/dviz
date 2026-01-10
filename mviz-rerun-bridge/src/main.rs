@@ -452,8 +452,57 @@ async fn main() -> Result<()> {
                         ("world/pointcloud".to_string(), serialize_message(&header, Some(&binary)))
                     }
 
+                    // ROS2 Pose [x,y,z,qx,qy,qz,qw] -> boxes3d + trajectory
+                    // Used by geometry_msgs/PoseStamped
+                    "pose" | "robot_pose" | "amcl_pose" if values.len() == 7 => {
+                        let (x, y, z) = (values[0], values[1], values[2]);
+                        let quat = [values[3], values[4], values[5], values[6]];
+
+                        // Add to accumulated trajectory
+                        trajectory_points.push([x, y, z.max(0.05)]);
+
+                        // Log pose periodically
+                        if *count % 50 == 1 {
+                            let msg = format!("Pose at ({:.2}, {:.2}, {:.2})", x, y, z);
+                            publish_log(&session, &topic_prefix, timestamp, "INFO", &msg, source_node).await;
+                        }
+
+                        // Publish robot body as box
+                        let body_header = MvizMessage {
+                            msg_type: "boxes3d".to_string(),
+                            timestamp: Some(timestamp),
+                            data: serde_json::json!({
+                                "centers": [[x, y, z + 0.15]],
+                                "sizes": [[0.5, 0.3, 0.3]],
+                                "quaternions": [quat],
+                                "color": [50, 150, 250, 255]
+                            }),
+                            format: None,
+                            count: None,
+                        };
+                        let body_topic = format!("{}/world/robot/body", topic_prefix);
+                        let _ = session.put(&body_topic, serialize_message(&body_header, None)).await;
+
+                        // Publish accumulated trajectory
+                        if trajectory_points.len() >= 2 {
+                            let traj_header = MvizMessage {
+                                msg_type: "linestrips3d".to_string(),
+                                timestamp: Some(timestamp),
+                                data: serde_json::json!({
+                                    "strips": [trajectory_points.clone()],
+                                    "color": [0, 255, 100, 255]
+                                }),
+                                format: None,
+                                count: None,
+                            };
+                            let traj_topic = format!("{}/world/robot/trajectory", topic_prefix);
+                            let _ = session.put(&traj_topic, serialize_message(&traj_header, None)).await;
+                        }
+                        continue;
+                    }
+
                     // Vehicle pose [x, y, theta, velocity] -> boxes3d + trajectory
-                    "sim_pose" | "vehicle_pose" | "pose" if values.len() >= 3 => {
+                    "sim_pose" | "vehicle_pose" if values.len() >= 3 => {
                         let (x, y, theta) = (values[0], values[1], values[2]);
                         let velocity = if values.len() >= 4 { values[3] } else { 0.0 };
 
@@ -671,6 +720,70 @@ async fn main() -> Result<()> {
                             count: None,
                         };
                         ("world/imu/accelerometer".to_string(), serialize_message(&header, None))
+                    }
+
+                    // ROS2 Markers [x,y,z,sx,sy,sz,qx,qy,qz,qw] -> boxes3d
+                    // Used by visualization_msgs/Marker (CUBE/SPHERE type)
+                    "markers" if values.len() == 10 => {
+                        let (x, y, z) = (values[0], values[1], values[2]);
+                        let (sx, sy, sz) = (values[3], values[4], values[5]);
+                        let quat = [values[6], values[7], values[8], values[9]];
+
+                        let header = MvizMessage {
+                            msg_type: "boxes3d".to_string(),
+                            timestamp: Some(timestamp),
+                            data: serde_json::json!({
+                                "centers": [[x, y, z]],
+                                "sizes": [[sx, sy, sz]],
+                                "quaternions": [quat],
+                                "color": [255, 165, 0, 200]  // Orange markers
+                            }),
+                            format: None,
+                            count: None,
+                        };
+                        ("world/markers".to_string(), serialize_message(&header, None))
+                    }
+
+                    // ROS2 Arrow Markers [ox,oy,oz,vx,vy,vz] -> arrows3d
+                    // Used by visualization_msgs/Marker (ARROW type)
+                    "markers" if values.len() == 6 => {
+                        let header = MvizMessage {
+                            msg_type: "arrows3d".to_string(),
+                            timestamp: Some(timestamp),
+                            data: serde_json::json!({
+                                "origins": [[values[0], values[1], values[2]]],
+                                "vectors": [[values[3], values[4], values[5]]],
+                                "color": [255, 100, 100, 255]  // Red arrows
+                            }),
+                            format: None,
+                            count: None,
+                        };
+                        ("world/markers/arrows".to_string(), serialize_message(&header, None))
+                    }
+
+                    // ROS2 Line Markers [x1,y1,z1,x2,y2,z2,...] -> linestrips3d
+                    // Used by visualization_msgs/Marker (LINE_STRIP type)
+                    "markers" if values.len() >= 6 && values.len() % 3 == 0 => {
+                        let points: Vec<[f32; 3]> = values
+                            .chunks(3)
+                            .map(|c| [c[0], c[1], c[2]])
+                            .collect();
+
+                        if points.len() < 2 {
+                            continue;
+                        }
+
+                        let header = MvizMessage {
+                            msg_type: "linestrips3d".to_string(),
+                            timestamp: Some(timestamp),
+                            data: serde_json::json!({
+                                "strips": [points],
+                                "color": [255, 200, 50, 255]  // Yellow lines
+                            }),
+                            format: None,
+                            count: None,
+                        };
+                        ("world/markers/lines".to_string(), serialize_message(&header, None))
                     }
 
                     // Vehicle state [x,y,theta,v, steering,accel,yaw_rate] -> scalar (could add more)

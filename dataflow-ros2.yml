@@ -1,0 +1,62 @@
+# MViz ROS2 Bridge Dataflow
+#
+# This dataflow bridges ROS2 topics to MViz visualization via Zenoh.
+# Uses dora-ros2-bridge to subscribe to ROS2 topics and forward to mviz-bridge.
+#
+# Architecture:
+#   [ROS2 System]                    [Dora Dataflow]              [PC - Display]
+#   ROS2 nodes  --> ros2_bridge --> mviz_bridge --> Zenoh --> mviz-shell + Rerun
+#
+# Usage:
+#   1. Source ROS2: source /opt/ros/humble/setup.bash
+#   2. Build mviz: cargo build --release -p mviz-rerun-bridge
+#   3. Start Dora: dora up
+#   4. Run dataflow: dora start dataflow-ros2.yml --name ros2viz
+#   5. In another terminal: cargo run -p mviz-shell
+#   6. Click "Spawn Rerun" then "Connect Zenoh"
+#
+# Requirements:
+#   - ROS2 Humble/Jazzy installed
+#   - pip install dora-rs pyyaml numpy pyarrow
+#   - Dora CLI installed
+#
+# Supported ROS2 Topics (configure in ros2_bridge.py):
+#   - sensor_msgs/PointCloud2 -> points3d
+#   - geometry_msgs/PoseStamped -> transform3d
+#   - nav_msgs/Path -> linestrips3d (waypoints)
+#   - visualization_msgs/Marker -> boxes3d/arrows3d
+#   - sensor_msgs/Image -> image
+#   - sensor_msgs/Imu -> arrows3d
+#   - nav_msgs/Odometry -> pose + trajectory
+
+nodes:
+  # ROS2 Bridge Node - Subscribes to ROS2 topics and converts to Dora format
+  # Edit ros2_bridge.py to configure which ROS2 topics to subscribe to
+  - id: ros2_bridge
+    operator:
+      python: scripts/ros2_bridge.py
+      inputs:
+        tick: dora/timer/millis/50
+      outputs:
+        - pointcloud      # sensor_msgs/PointCloud2 -> Float32Array [x,y,z,...]
+        - pose            # geometry_msgs/PoseStamped -> Float32Array [x,y,z,qx,qy,qz,qw]
+        - odom_pose       # nav_msgs/Odometry -> Float32Array [x,y,z,qx,qy,qz,qw]
+        - waypoints       # nav_msgs/Path -> Float32Array [x1,y1,x2,y2,...]
+        - imu_msg         # sensor_msgs/Imu -> Float32Array [qx,qy,qz,qw,gx,gy,gz,ax,ay,az]
+        - markers         # visualization_msgs/MarkerArray -> Float32Array (varies)
+        - image           # sensor_msgs/Image -> will need special handling
+
+  # MViz Zenoh Bridge - Publishes to Zenoh for remote visualization
+  - id: mviz_bridge
+    build: cargo build --release -p mviz-rerun-bridge
+    path: target/release/mviz-dora-bridge
+    inputs:
+      pointcloud: ros2_bridge/pointcloud
+      pose: ros2_bridge/pose
+      odom_pose: ros2_bridge/odom_pose
+      waypoints: ros2_bridge/waypoints
+      imu_msg: ros2_bridge/imu_msg
+    env:
+      ZENOH_TOPIC_PREFIX: mviz
+      DATAFLOW_PATH: dataflow-ros2.yml
+      RUST_LOG: info
