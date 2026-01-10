@@ -14,3 +14,4 @@ Cargo.lock
 
 # Claude instructions
 CLAUDE.md
+out/

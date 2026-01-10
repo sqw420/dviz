@@ -37,19 +37,15 @@ use std::env;
 use std::collections::HashMap;
 use std::path::Path;
 
-/// Parse dataflow YAML and publish node definitions
-async fn publish_dataflow_definitions(
-    session: &zenoh::Session,
-    topic_prefix: &str,
-    dataflow_path: &str,
-) {
+/// Parse dataflow YAML and return node definitions (for periodic republishing)
+fn parse_dataflow_definitions(dataflow_path: &str) -> Vec<NodeDefinition> {
     log::info!("Parsing dataflow YAML: {}", dataflow_path);
 
     let yaml_content = match std::fs::read_to_string(dataflow_path) {
         Ok(content) => content,
         Err(e) => {
             log::warn!("Failed to read dataflow YAML: {}", e);
-            return;
+            return Vec::new();
         }
     };
 
@@ -57,7 +53,7 @@ async fn publish_dataflow_definitions(
         Ok(v) => v,
         Err(e) => {
             log::warn!("Failed to parse dataflow YAML: {}", e);
-            return;
+            return Vec::new();
         }
     };
 
@@ -65,7 +61,7 @@ async fn publish_dataflow_definitions(
     let mut node_definitions: Vec<NodeDefinition> = Vec::new();
 
     // First pass: collect all nodes and their outputs
-    let mut node_outputs: HashMap<String, Vec<String>> = HashMap::new();
+    let mut _node_outputs: HashMap<String, Vec<String>> = HashMap::new();
 
     if let Some(nodes) = yaml_value.get("nodes").and_then(|n| n.as_sequence()) {
         for node in nodes {
@@ -83,7 +79,7 @@ async fn publish_dataflow_definitions(
                     }
                 }
 
-                node_outputs.insert(id.to_string(), outputs);
+                _node_outputs.insert(id.to_string(), outputs);
             }
         }
     }
@@ -182,8 +178,17 @@ async fn publish_dataflow_definitions(
         }
     }
 
-    // Publish each node definition
-    for node_def in &node_definitions {
+    log::info!("Parsed {} node definitions", node_definitions.len());
+    node_definitions
+}
+
+/// Publish node definitions to Zenoh
+async fn publish_node_definitions(
+    session: &zenoh::Session,
+    topic_prefix: &str,
+    node_definitions: &[NodeDefinition],
+) {
+    for node_def in node_definitions {
         let msg = MvizMessage {
             msg_type: "node_definition".to_string(),
             timestamp: Some(0.0),
@@ -195,12 +200,13 @@ async fn publish_dataflow_definitions(
         if let Err(e) = session.put(&topic, serialize_message(&msg, None)).await {
             log::warn!("Failed to publish node definition for {}: {}", node_def.id, e);
         } else {
-            log::info!("Published definition for node: {} ({} inputs, {} outputs)",
+            log::debug!("Published definition for node: {} ({} inputs, {} outputs)",
                 node_def.id, node_def.inputs.len(), node_def.outputs.len());
         }
     }
-
-    log::info!("Published {} node definitions", node_definitions.len());
+    if !node_definitions.is_empty() {
+        log::info!("Published {} node definitions", node_definitions.len());
+    }
 }
 
 /// Publish a log message to Zenoh
@@ -255,9 +261,12 @@ async fn main() -> Result<()> {
     log::info!("Zenoh session opened successfully");
     log::info!("Topic prefix: {}", topic_prefix);
 
-    // Publish node definitions from dataflow YAML if available
-    if let Ok(dataflow_path) = env::var("DATAFLOW_PATH") {
-        publish_dataflow_definitions(&session, &topic_prefix, &dataflow_path).await;
+    // Parse and store node definitions for periodic republishing
+    let node_definitions: Vec<NodeDefinition> = if let Ok(dataflow_path) = env::var("DATAFLOW_PATH") {
+        log::info!("Using DATAFLOW_PATH: {}", dataflow_path);
+        let defs = parse_dataflow_definitions(&dataflow_path);
+        publish_node_definitions(&session, &topic_prefix, &defs).await;
+        defs
     } else {
         // Try common paths
         let possible_paths = [
@@ -266,14 +275,21 @@ async fn main() -> Result<()> {
             "../dataflow-path-following.yml",
             "../dataflow.yml",
         ];
+        let mut found_defs = Vec::new();
         for path in &possible_paths {
             if Path::new(path).exists() {
                 log::info!("Found dataflow at: {}", path);
-                publish_dataflow_definitions(&session, &topic_prefix, path).await;
+                found_defs = parse_dataflow_definitions(path);
+                publish_node_definitions(&session, &topic_prefix, &found_defs).await;
                 break;
             }
         }
-    }
+        found_defs
+    };
+
+    // Track last time we published definitions (for periodic republishing)
+    let mut last_def_publish = std::time::Instant::now();
+    const DEF_REPUBLISH_INTERVAL: std::time::Duration = std::time::Duration::from_secs(3);
 
     // Publish bridge startup log
     publish_log(&session, &topic_prefix, 0.0, "INFO", "MViz bridge started, waiting for data...", "mviz_bridge").await;
@@ -293,6 +309,11 @@ async fn main() -> Result<()> {
 
     // Main event loop - handle ANY input generically
     while let Some(event) = events.recv() {
+        // Periodically republish node definitions for late-joining subscribers
+        if !node_definitions.is_empty() && last_def_publish.elapsed() >= DEF_REPUBLISH_INTERVAL {
+            publish_node_definitions(&session, &topic_prefix, &node_definitions).await;
+            last_def_publish = std::time::Instant::now();
+        }
         log::info!("Received event: {:?}", std::mem::discriminant(&event));
         match event {
             Event::Input { id, metadata: _, data } => {

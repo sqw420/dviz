@@ -1,5 +1,46 @@
 # MViz Release Notes
 
+## v0.2.2 (2026-01-09)
+
+### Fix: Node Definition Timing Issue
+
+Fixed issue where NodeDetailPanel showed "(definition not available)" even when definitions were being published. The root cause was that node definitions were only published once at bridge startup, which could miss late-joining Zenoh subscribers.
+
+#### Changes
+
+**mviz-rerun-bridge/src/main.rs:**
+- Refactored into separate functions:
+  - `parse_dataflow_definitions()` - parses YAML, returns `Vec<NodeDefinition>`
+  - `publish_node_definitions()` - publishes definitions to Zenoh
+- Node definitions now stored and republished every 3 seconds
+- Late-joining subscribers (like mviz-shell) now receive definitions reliably
+- Removed duplicate legacy function code
+
+#### Technical Details
+
+The original implementation used `session.put()` once at startup:
+```rust
+// Old: One-shot publish - late subscribers miss it
+publish_dataflow_definitions(&session, &prefix, &path).await;
+```
+
+The fix stores definitions and republishes periodically:
+```rust
+// New: Periodic republish for late-joining subscribers
+let node_definitions = parse_dataflow_definitions(&path);
+publish_node_definitions(&session, &prefix, &node_definitions).await;
+
+while let Some(event) = events.recv() {
+    if last_def_publish.elapsed() >= Duration::from_secs(3) {
+        publish_node_definitions(&session, &prefix, &node_definitions).await;
+        last_def_publish = Instant::now();
+    }
+    // ... handle events
+}
+```
+
+---
+
 ## v0.2.1 (2026-01-09)
 
 ### Feature: Node Definition Publishing from Dataflow YAML
