@@ -560,6 +560,28 @@ impl Widget for DisplaysPanel {
             }
             _ => {}
         }
+
+        // Handle display list item clicks
+        let display_list = self.view.label(id!(display_list_content));
+        match event.hits(cx, display_list.area()) {
+            Hit::FingerUp(fe) => {
+                if fe.is_over && !self.displays.is_empty() {
+                    // Calculate which display was clicked based on Y position
+                    // Line height is approximately 18px for font_size 11.0
+                    let line_height = 18.0;
+                    let clicked_index = (fe.abs.y - display_list.area().rect(cx).pos.y) / line_height;
+                    let index = clicked_index as usize;
+
+                    if index < self.displays.len() {
+                        self.selected_index = Some(index);
+                        let display_id = self.displays[index].id;
+                        cx.widget_action(self.widget_uid(), &scope.path, DisplaysPanelAction::DisplaySelected(display_id));
+                        self.redraw(cx);
+                    }
+                }
+            }
+            _ => {}
+        }
     }
 
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {

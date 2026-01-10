@@ -1,5 +1,30 @@
 # MViz Release Notes
 
+## v0.2.9 (2026-01-09)
+
+### Feature: Click Detection on Display List Items
+
+Added click-to-select functionality for the displays panel list items.
+
+#### Changes
+
+**mviz-widgets/src/displays_panel.rs:**
+- Added click detection in `handle_event()` for `display_list_content` label
+- Calculates clicked item index based on Y position (line height ~18px for font_size 11.0)
+- Updates `selected_index` on click
+- Emits `DisplaysPanelAction::DisplaySelected(display_id)` when item clicked
+- PropertiesPanel updates automatically via existing `on_display_selected()` handler
+
+#### How It Works
+
+When user clicks on a display list item:
+1. Hit detection captures click on `display_list_content` area
+2. Y position converted to line index: `clicked_index = (click_y - area_y) / line_height`
+3. If valid index, updates selection and emits DisplaySelected action
+4. App's `on_display_selected()` handler updates PropertiesPanel with display info
+
+---
+
 ## v0.2.8 (2026-01-09)
 
 ### Fix: Toolbar UI and PropertiesPanel Integration
