@@ -1,5 +1,74 @@
 # MViz Release Notes
 
+## v0.3.1 (2026-01-09)
+
+### Feature: Embedded Dora Dataflow Graph Visualization
+
+Added dynamic dataflow graph visualization directly in the Makepad UI. The graph is inferred from message flow patterns without requiring YAML files on the PC side.
+
+#### Changes
+
+**mviz-core/src/zenoh_protocol.rs:**
+- Added `GraphNodeStatus` enum (Active, Idle, Error)
+- Added `GraphNode` struct (id, status, last_seen)
+- Added `GraphEdge` struct (from_node, from_port, to_node, to_port)
+- Added `GraphUpdate` struct (nodes, edges, timestamp)
+
+**mviz-rerun-bridge/src/main.rs:**
+- Added `GraphState` struct for tracking discovered graph structure
+- Added `record_input()` method to infer edges from input patterns (e.g., `source_node/output_port`)
+- Added `to_graph_update()` method to generate graph update messages
+- Added `publish_graph_update()` function for Zenoh publishing
+- Graph updates published every 2 seconds
+
+**mviz-shell/src/zenoh_receiver.rs:**
+- Added `ZenohMessage::GraphUpdate(GraphUpdate)` variant
+- Added handling for `graph_update` message type
+- Tracks all nodes from graph updates
+
+**mviz-widgets/src/dataflow_graph.rs (new file):**
+- Created `DataflowGraphWidget` for displaying the graph
+- `GraphDisplayNode` and `GraphDisplayEdge` structures
+- Text-based rendering approach (like LogPanel)
+- Click detection for node selection
+- `update_from_graph_update()` method for dynamic updates
+
+**mviz-widgets/src/lib.rs:**
+- Added `pub mod dataflow_graph`
+- Added exports for DataflowGraphWidget, DataflowGraphAction, DataflowGraphWidgetRef
+
+**mviz-shell/src/app.rs:**
+- Replaced IMU/Vehicle/Stats panels with DataflowGraphWidget in left panel
+- Added `ZenohMessage::GraphUpdate` handling in `process_zenoh_messages()`
+- Added `DataflowGraphAction::NodeClicked` handling in `handle_actions()`
+
+#### How It Works
+
+1. Bridge tracks input messages with format `source_node/output_port`
+2. Infers graph edges: source_node -> current_node (via output_port)
+3. Publishes `graph_update` messages via Zenoh every 2 seconds
+4. mviz-shell receives updates and displays in DataflowGraphWidget
+
+#### Graph Display Format
+
+```
+=== NODES ===
+
+  [ACTIVE] bicycle_model
+  [idle] simple_planner <<
+  [idle] imu_synthesizer
+
+=== CONNECTIONS ===
+
+  bicycle_model / sim_pose --> simple_planner / pose
+  simple_planner / steering_cmd --> bicycle_model / steering_cmd
+
+--- 3 nodes, 2 edges ---
+Last update: 2.1s
+```
+
+---
+
 ## v0.2.9 (2026-01-09)
 
 ### Feature: Click Detection on Display List Items
