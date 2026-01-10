@@ -1,5 +1,20 @@
 # MViz Release Notes
 
+## v0.3.7 (2026-01-09)
+
+### Enhancement: Wider Side Panels
+
+Increased left and right panel widths for better visibility.
+
+#### Changes
+
+**mviz-shell/src/app.rs:**
+- Left panel: 280px → 340px
+- Right panel: 280px → 340px
+- More room to display dataflow graph, properties, and logs
+
+---
+
 ## v0.3.6 (2026-01-09)
 
 ### Fix: Revert to Fixed Layout + Green Status Emoji

@@ -175,7 +175,7 @@ live_design! {
 
                         // LEFT PANEL - Displays (fixed width)
                         left_panel = <View> {
-                            width: 280, height: Fill
+                            width: 340, height: Fill
                             flow: Down
                             spacing: 8
                             padding: 8
@@ -227,7 +227,7 @@ live_design! {
 
                         // RIGHT PANEL - Properties + System Log (fixed width)
                         right_panel = <View> {
-                            width: 280, height: Fill
+                            width: 340, height: Fill
                             flow: Down
                             spacing: 8
                             padding: 8
