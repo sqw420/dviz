@@ -1,5 +1,20 @@
 # MViz Release Notes
 
+## v0.2.3 (2026-01-09)
+
+### Fix: Add DATAFLOW_PATH to Bridge Environment
+
+The bridge couldn't find the dataflow YAML file because Dora runs nodes from a different working directory. Added `DATAFLOW_PATH` environment variable to the dataflow configuration.
+
+**dataflow-path-following.yml:**
+```yaml
+- id: mviz_bridge
+  env:
+    DATAFLOW_PATH: /Users/nupylot/Public/mviz/dataflow-path-following.yml
+```
+
+---
+
 ## v0.2.2 (2026-01-09)
 
 ### Fix: Node Definition Timing Issue
