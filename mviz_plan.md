@@ -286,8 +286,9 @@ Add log_marker_array(bridge, base_path, MarkerArray)."
 
 ### Parallel Stream D: URDF (Dev D)
 
-#### Task 1.12: URDF Parser
+#### Task 1.12: URDF Parser [COMPLETED]
 **Duration**: 6 hours
+**Status**: Implemented in mviz-urdf/src/parser.rs
 
 ```
 AI Prompt:
@@ -310,9 +311,10 @@ Functions:
 Convert urdf-rs types to our types with proper Transform conversion (xyz + rpy to Vec3 + Quat)."
 ```
 
-#### Task 1.13: Mesh Loader
+#### Task 1.13: Mesh Loader [COMPLETED]
 **Duration**: 4 hours
 **Depends on**: Task 1.12
+**Status**: Implemented in mviz-urdf/src/mesh_loader.rs
 
 ```
 AI Prompt:
@@ -572,9 +574,10 @@ AI Prompt:
 
 ## Phase 3: Robot & Advanced Features (Week 6-7)
 
-### Task 3.1: Robot Model Display (Dev F)
+### Task 3.1: Robot Model Display (Dev F) [COMPLETED]
 **Duration**: 8 hours
 **Depends on**: Task 1.12, 1.13, 2.1
+**Status**: Implemented in mviz-displays/src/robot_model.rs
 
 ```
 AI Prompt:
@@ -723,9 +726,10 @@ Implement LiveRegister, MatchEvent, AppMain traits.
 Initialize Rerun connection in handle_startup."
 ```
 
-### Task 4.2: Displays Panel Widget (Dev G)
+### Task 4.2: Displays Panel Widget (Dev G) [COMPLETED]
 **Duration**: 5 hours
 **Depends on**: Task 4.1
+**Status**: Implemented in mviz-widgets/src/displays_panel.rs
 
 ```
 AI Prompt:
@@ -743,9 +747,10 @@ Handle checkbox toggle to enable/disable displays.
 Handle click to select display (show in properties panel)."
 ```
 
-### Task 4.3: Properties Panel Widget (Dev G)
+### Task 4.3: Properties Panel Widget (Dev G) [COMPLETED]
 **Duration**: 6 hours
 **Depends on**: Task 4.1
+**Status**: Implemented in mviz-widgets/src/properties_panel.rs
 
 ```
 AI Prompt:
@@ -765,9 +770,10 @@ Methods:
 Use Makepad's standard widgets (Button, TextInput, CheckBox, DropDown)."
 ```
 
-### Task 4.4: Toolbar Widget (Dev G)
+### Task 4.4: Toolbar Widget (Dev G) [COMPLETED]
 **Duration**: 3 hours
 **Depends on**: Task 4.1
+**Status**: Implemented in mviz-widgets/src/toolbar.rs
 
 ```
 AI Prompt:
@@ -922,10 +928,10 @@ In App:
 Add file dialog integration for Open/Save menu items."
 ```
 
-### Task 4.8: Node Detail Panel Widget (Dev G) [PLANNED - Phase 7]
+### Task 4.8: Node Detail Panel Widget (Dev G) [COMPLETED]
 **Duration**: 8 hours
 **Depends on**: Task 4.1, Task 4.5
-**Status**: Design Complete (v0.1.9)
+**Status**: Implemented in mviz-widgets/src/node_detail_panel.rs
 
 ```
 AI Prompt:
@@ -992,14 +998,14 @@ Features:
 ```
 
 **Acceptance Criteria**:
-- [ ] Node dropdown populated from Zenoh DataflowDefinition message
-- [ ] Inputs display shows port name and source
-- [ ] Outputs display shows port name and destination nodes
-- [ ] Status indicator updates based on node health
-- [ ] Logs filtered to selected node only
-- [ ] Clear button removes logs for current node
-- [ ] Node switching clears previous logs
-- [ ] Dropdown updates when new nodes discovered
+- [x] Node dropdown populated from discovered nodes
+- [x] Inputs display shows live I/O activity with timestamps
+- [x] Outputs display shows live I/O activity with timestamps
+- [x] Status indicator updates based on node selection
+- [x] Logs filtered to selected node only
+- [x] Clear button removes logs for current node
+- [x] Node switching filters logs for new node
+- [x] Dropdown updates when new nodes discovered from logs
 
 **Dependencies**:
 1. Bridge must publish `mviz/dataflow/definition` topic on startup
@@ -1293,8 +1299,8 @@ Task 0.1 (Setup)
 │  Task 1.4 ──▶ Task 1.5                            │
 │  (Display)    (Config)                             │
 │                                                    │
-│  Task 1.12 ──▶ Task 1.13                          │
-│  (URDF)       (Mesh)                               │
+│  Task 1.12 ──▶ Task 1.13  ✓                       │
+│  (URDF) ✓     (Mesh) ✓                             │
 └───────────────────────────────────────────────────┘
                     │
                     ▼
@@ -1320,7 +1326,7 @@ Task 0.1 (Setup)
 ┌───────────────────────────────────────────────────┐
 │                    Phase 3                         │
 │                                                    │
-│  Task 3.1 (RobotModel)                            │
+│  Task 3.1 (RobotModel) ✓                          │
 │  Task 3.2 (LaserScan)                             │
 │  Task 3.3 (FPS)                                    │
 │  Task 3.4 (TopDown)                               │
@@ -1332,11 +1338,11 @@ Task 0.1 (Setup)
 ┌───────────────────────────────────────────────────┐
 │                    Phase 4                         │
 │                                                    │
-│  Task 4.1 ──┬──▶ Task 4.2 (DisplaysPanel)         │
-│  (AppShell) ├──▶ Task 4.3 (PropertiesPanel)       │
-│             ├──▶ Task 4.4 (Toolbar)               │
+│  Task 4.1 ──┬──▶ Task 4.2 (DisplaysPanel) ✓       │
+│  (AppShell) ├──▶ Task 4.3 (PropertiesPanel) ✓     │
+│             ├──▶ Task 4.4 (Toolbar) ✓             │
 │             ├──▶ Task 4.5 (SystemLogPanel) ✓      │
-│             └──▶ Task 4.8 (NodeDetailPanel) [Plan]│
+│             └──▶ Task 4.8 (NodeDetailPanel) ✓     │
 │                                                    │
 │  Task 4.6 ──▶ Task 4.7                            │
 │  (Manager)    (Config)                             │

@@ -1,5 +1,36 @@
 # MViz Release Notes
 
+## v0.3.9 (2026-01-10)
+
+### Documentation: Sync Plan and Design with Actual Implementation
+
+Comprehensive update to reflect actual codebase state.
+
+#### Tasks Marked as COMPLETED
+
+**mviz_plan.md:**
+- Task 1.12: URDF Parser (mviz-urdf/src/parser.rs)
+- Task 1.13: Mesh Loader (mviz-urdf/src/mesh_loader.rs)
+- Task 3.1: Robot Model Display (mviz-displays/src/robot_model.rs)
+- Task 4.2: Displays Panel Widget (mviz-widgets/src/displays_panel.rs)
+- Task 4.3: Properties Panel Widget (mviz-widgets/src/properties_panel.rs)
+- Task 4.4: Toolbar Widget (mviz-widgets/src/toolbar.rs)
+- Task 4.8: Node Detail Panel Widget (mviz-widgets/src/node_detail_panel.rs)
+- Updated dependency graph with checkmarks for completed tasks
+
+**mviz_design.md:**
+- Section 9.4: Node Detail Panel - marked as IMPLEMENTED
+- Section 10: URDF Integration - marked as IMPLEMENTED
+
+#### Remaining Pending Tasks
+
+- Task 3.2: LaserScan Display
+- Task 3.3-3.6: View Controllers and Tools (FPS, TopDown, Select, Measure)
+- Task 4.6-4.7: Display Manager and Configuration Save/Load
+- Phase 5: Integration Testing, Documentation, Optimization
+
+---
+
 ## v0.3.8 (2026-01-10)
 
 ### Documentation: Updated Design and Plan

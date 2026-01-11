@@ -3175,13 +3175,15 @@ impl App {
 
 ---
 
-## 9.4 Node Detail Panel (Phase 7)
+## 9.4 Node Detail Panel (Phase 7) [IMPLEMENTED]
+
+**Status**: Implemented in `mviz-widgets/src/node_detail_panel.rs`
 
 A dedicated panel for viewing detailed information about individual dataflow nodes, including their input/output connections and filtered logs.
 
 ### Overview
 
-The Node Detail Panel replaces the static "3D Visualization (Rerun)" text in the center panel with an interactive node inspector that shows:
+The Node Detail Panel shows detailed node information in the center panel:
 
 1. **Node Header**: Selected node name with status indicator
 2. **Input/Output Connections**: Two-column layout showing data flow
@@ -3923,9 +3925,11 @@ Node: bicycle_model
 
 ---
 
-## 10. URDF Integration
+## 10. URDF Integration [IMPLEMENTED]
 
-### 10.1 URDF Loader (`rv-urdf/src/parser.rs`)
+**Status**: Implemented in `mviz-urdf/` crate and `mviz-displays/src/robot_model.rs`
+
+### 10.1 URDF Loader (`mviz-urdf/src/parser.rs`) [IMPLEMENTED]
 
 ```rust
 use std::path::Path;
