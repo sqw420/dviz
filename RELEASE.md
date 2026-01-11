@@ -1,5 +1,42 @@
 # MViz Release Notes
 
+## v0.3.11 (2026-01-11)
+
+### Fix: Connect Existing Bag Player to Rerun on Launch
+
+Fixed issue where ROS bag playback showed nothing in Rerun when the bag was loaded before spawning Rerun viewer.
+
+#### Root Cause
+
+When user workflow was:
+1. File > Open Bag (loads bag, but `rerun_bridge` is None)
+2. Spawn Rerun (creates bridge, but existing player not connected)
+3. Play (player has no Rerun stream, nothing displayed)
+
+The bag player's `set_rerun_stream()` was only called in `open_rosbag()`, which checks for `rerun_bridge`. If Rerun wasn't launched first, the player was never connected.
+
+#### Fix
+
+Modified `launch_rerun()` in `mviz-shell/src/app.rs` to connect existing bag player when Rerun is spawned:
+
+```rust
+// Connect existing bag player to Rerun if one is loaded
+if let Some(ref mut player) = self.rosbag_player {
+    if let Some(stream) = bridge.stream() {
+        player.set_rerun_stream(stream.clone());
+        debug_log("Connected existing bag player to Rerun stream");
+    }
+}
+```
+
+#### Result
+
+Both workflows now work:
+- Spawn Rerun first, then Open Bag, then Play
+- Open Bag first, then Spawn Rerun, then Play
+
+---
+
 ## v0.3.10 (2026-01-10)
 
 ### Feature: ROS Bag Playback (Phase 10)

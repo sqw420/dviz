@@ -535,6 +535,15 @@ impl App {
                             Ok(()) => debug_log("Ground grid logged"),
                             Err(e) => debug_log(&format!("Failed to log grid: {}", e)),
                         }
+
+                        // Connect existing bag player to Rerun if one is loaded
+                        if let Some(ref mut player) = self.rosbag_player {
+                            if let Some(stream) = bridge.stream() {
+                                player.set_rerun_stream(stream.clone());
+                                debug_log("Connected existing bag player to Rerun stream");
+                            }
+                        }
+
                         self.rerun_bridge = Some(bridge);
                         self.ui.label(id!(status_label)).set_text(cx, "Status: Rerun Connected (Web)");
                         self.ui.button(id!(launch_btn)).set_text(cx, "Rerun Running");
