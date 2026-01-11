@@ -11,6 +11,7 @@ use mviz_widgets::dataflow_graph::DataflowGraphWidgetWidgetRefExt;
 use crate::dora_receiver::{DoraReceiver, DoraMessage, DoraData};
 use crate::zenoh_receiver::{ZenohReceiver, ZenohMessage, VisData, parse_points_xyz_f32};
 use mviz_core::zenoh_protocol::{Points3DData, Boxes3DData, Arrows3DData, LineStrips3DData, Transform3DData, ScalarData, LogLevel, binary_formats};
+use mviz_rosbag::{RosBagPlayer, PlaybackState};
 use std::io::Write;
 use std::collections::HashSet;
 
@@ -285,6 +286,9 @@ pub struct App {
     // System log state
     #[rust] discovered_nodes: HashSet<String>,
     #[rust] log_entry_count: u64,
+    // ROS bag playback
+    #[rust] rosbag_player: Option<RosBagPlayer>,
+    #[rust] rosbag_playing: bool,
 }
 
 impl LiveRegister for App {
@@ -315,6 +319,9 @@ impl MatchEvent for App {
         // System log state
         self.discovered_nodes = HashSet::new();
         self.log_entry_count = 0;
+        // ROS bag playback
+        self.rosbag_player = None;
+        self.rosbag_playing = false;
 
         // Initialize Fixed Frame dropdown with common coordinate frames
         let frame_labels = vec![
@@ -332,10 +339,10 @@ impl MatchEvent for App {
     }
 
     fn handle_actions(&mut self, cx: &mut Cx, actions: &Actions) {
-        // File menu button
+        // File menu button - opens file dialog for ROS bag
         if self.ui.button(id!(file_btn)).clicked(actions) {
-            self.ui.label(id!(status_label)).set_text(cx, "File menu: Open, Save, Export (coming soon)");
-            debug_log("File menu clicked");
+            debug_log("File menu clicked - opening bag file dialog");
+            self.open_rosbag_dialog(cx);
         }
 
         // View menu button
@@ -357,9 +364,13 @@ impl MatchEvent for App {
             self.launch_rerun(cx);
         }
 
-        // Play/Pause button
+        // Play/Pause button - handles both simulation and bag playback
         if self.ui.button(id!(play_btn)).clicked(actions) {
-            self.toggle_simulation(cx);
+            if self.rosbag_player.is_some() {
+                self.toggle_rosbag_playback(cx);
+            } else {
+                self.toggle_simulation(cx);
+            }
         }
 
         // Test Laser button
@@ -467,6 +478,12 @@ impl AppMain for App {
             self.process_dora_messages(cx);
             // Process Zenoh messages if connected
             self.process_zenoh_messages(cx);
+
+            // Update ROS bag playback if active
+            if self.rosbag_playing {
+                self.update_rosbag_playback(cx, 0.02); // 50Hz = 20ms
+                self.ui.redraw(cx);
+            }
 
             // Run simulation or update based on data source
             match self.data_source {
@@ -1707,6 +1724,130 @@ impl App {
     fn update_from_zenoh(&mut self, _cx: &mut Cx) {
         // All data is now logged directly in process_zenoh_messages via log_vis_data_to_rerun
         // UI labels for stats were removed with the IMU/Vehicle/Stats panels
+    }
+
+    // ========================================================================
+    // ROS BAG PLAYBACK
+    // ========================================================================
+
+    /// Open file dialog to select a ROS bag file
+    fn open_rosbag_dialog(&mut self, cx: &mut Cx) {
+        debug_log("Opening ROS bag file dialog...");
+
+        // Use native file dialog
+        let dialog = rfd::FileDialog::new()
+            .add_filter("ROS Bag", &["bag"])
+            .add_filter("All Files", &["*"])
+            .set_title("Open ROS Bag File");
+
+        if let Some(path) = dialog.pick_file() {
+            let path_str = path.to_string_lossy().to_string();
+            debug_log(&format!("Selected bag file: {}", path_str));
+            self.open_rosbag(cx, &path_str);
+        } else {
+            debug_log("File dialog cancelled");
+        }
+    }
+
+    /// Open and load a ROS bag file
+    fn open_rosbag(&mut self, cx: &mut Cx, path: &str) {
+        debug_log(&format!("Opening ROS bag: {}", path));
+        self.ui.label(id!(status_label)).set_text(cx, &format!("Loading: {}", path));
+
+        match RosBagPlayer::open(path) {
+            Ok(mut player) => {
+                // Display bag info
+                let topics = player.topics();
+                let topic_count = topics.len();
+                let duration = player.duration();
+
+                debug_log(&format!("Bag loaded: {} topics, {:.2}s duration", topic_count, duration));
+
+                // Log topics
+                for topic in topics {
+                    debug_log(&format!("  Topic: {} ({})", topic.name, topic.msg_type));
+                }
+
+                // Connect to Rerun if available
+                if let Some(ref bridge) = self.rerun_bridge {
+                    if let Some(stream) = bridge.stream() {
+                        player.set_rerun_stream(stream.clone());
+                        debug_log("Connected bag player to Rerun stream");
+                    }
+                }
+
+                // Update UI
+                self.ui.label(id!(status_label)).set_text(cx,
+                    &format!("Loaded: {} ({} topics, {:.1}s)",
+                        std::path::Path::new(path)
+                            .file_name()
+                            .map(|n| n.to_string_lossy().to_string())
+                            .unwrap_or_else(|| path.to_string()),
+                        topic_count,
+                        duration));
+
+                self.ui.label(id!(time_label)).set_text(cx, "0.00s");
+                self.ui.button(id!(play_btn)).set_text(cx, "Play Bag");
+
+                self.rosbag_player = Some(player);
+                self.rosbag_playing = false;
+            }
+            Err(e) => {
+                let error_msg = format!("Failed to open bag: {}", e);
+                debug_log(&error_msg);
+                self.ui.label(id!(status_label)).set_text(cx, &error_msg);
+            }
+        }
+        self.ui.redraw(cx);
+    }
+
+    /// Toggle ROS bag playback
+    fn toggle_rosbag_playback(&mut self, cx: &mut Cx) {
+        if let Some(ref mut player) = self.rosbag_player {
+            if self.rosbag_playing {
+                player.pause();
+                self.rosbag_playing = false;
+                self.ui.button(id!(play_btn)).set_text(cx, "Play Bag");
+                self.ui.label(id!(status_label)).set_text(cx, "Bag paused");
+            } else {
+                player.play();
+                self.rosbag_playing = true;
+                self.ui.button(id!(play_btn)).set_text(cx, "Pause");
+                self.ui.label(id!(status_label)).set_text(cx, "Playing bag...");
+            }
+        }
+        self.ui.redraw(cx);
+    }
+
+    /// Update ROS bag playback (called from timer)
+    fn update_rosbag_playback(&mut self, cx: &mut Cx, dt: f64) {
+        if !self.rosbag_playing {
+            return;
+        }
+
+        if let Some(ref mut player) = self.rosbag_player {
+            match player.update(dt) {
+                Ok(msg_count) => {
+                    if msg_count > 0 {
+                        // Update time display
+                        let current_time = player.current_time() - player.start_time();
+                        let duration = player.duration();
+                        self.ui.label(id!(time_label)).set_text(cx,
+                            &format!("{:.2}s / {:.2}s", current_time, duration));
+                    }
+
+                    // Check if playback finished
+                    if player.state() == PlaybackState::Finished {
+                        self.rosbag_playing = false;
+                        self.ui.button(id!(play_btn)).set_text(cx, "Play Bag");
+                        self.ui.label(id!(status_label)).set_text(cx, "Playback finished");
+                    }
+                }
+                Err(e) => {
+                    debug_log(&format!("Bag playback error: {}", e));
+                }
+            }
+        }
     }
 }
 

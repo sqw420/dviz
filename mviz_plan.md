@@ -1276,6 +1276,90 @@ Suggest improvements."
 
 ---
 
+## Phase 10: ROS Bag Playback [COMPLETED v0.3.10]
+
+### Task 10.1: mviz-rosbag Crate [COMPLETED]
+**Duration**: 6 hours
+**Status**: Implemented in mviz-rosbag/
+
+New crate for ROS1 bag file playback with visualization pipeline:
+rosbag → PointCloud2 parsing → TF transforms → Rerun visualization
+
+#### Files Created
+
+**mviz-rosbag/src/player.rs:**
+- `RosBagPlayer` - Core player with open(), play(), pause(), seek(), update()
+- `TopicInfo` - Topic metadata (name, msg_type, message_count, md5sum)
+- `PlaybackState` - Stopped, Playing, Paused, Finished
+- Reads bag metadata and timing from IndexRecord::ChunkInfo
+- Processes messages in time order up to target playback time
+- Logs PointCloud2 to Rerun with intensity-based coloring
+
+**mviz-rosbag/src/messages.rs:**
+- `BagMessage` - topic, msg_type, timestamp, data
+- `MessageType` enum: PointCloud2, TfMessage, LaserScan, Image, Odometry, Imu, PoseStamped, Twist, Unknown
+
+**mviz-rosbag/src/pointcloud.rs:**
+- `Point` - x, y, z, intensity, ring
+- `PointCloudProcessor` - Parses PointCloud2 messages from raw bytes
+- Handles ROS1 message layout with field parsing
+- Supports x, y, z, intensity fields
+
+**mviz-rosbag/src/tf.rs:**
+- `Transform` - translation + quaternion with compose(), inverse()
+- `StampedTransform` - Transform with frame IDs and timestamp
+- `TfBuffer` - Transform storage with lookup_transform()
+- Chain lookup through common ancestor for indirect transforms
+
+#### Dependencies
+- `rosbag` v0.6 - ROS1 bag file reading
+- `rerun` - 3D visualization
+
+### Task 10.2: UI Integration [COMPLETED]
+**Duration**: 2 hours
+**Status**: Implemented in mviz-shell/
+
+#### File Dialog Integration
+
+**mviz-shell/Cargo.toml:**
+- Added `rfd = "0.15"` - Native file dialog
+- Added `mviz-rosbag` path dependency
+
+**mviz-shell/src/app.rs:**
+- File button opens native file dialog for .bag files
+- `open_rosbag_dialog()` - Shows file picker with "ROS Bag" filter
+- `open_rosbag()` - Opens bag and logs topic info
+- `toggle_rosbag_playback()` - Play/pause bag playback
+- `update_rosbag_playback()` - Called from timer, processes messages
+
+#### Playback Controls
+
+- File button: Opens bag file dialog
+- Play button: Toggles bag playback (or simulation if no bag loaded)
+- App struct fields:
+  - `rosbag_player: Option<RosBagPlayer>`
+  - `rosbag_playing: bool`
+
+#### Visualization Pipeline
+
+1. User clicks File button → native file dialog
+2. Select .bag file → `RosBagPlayer::open()` parses metadata
+3. Click Play → `player.play()` starts playback
+4. Timer calls `update_rosbag_playback()` at 50Hz
+5. Player processes messages up to wall time * speed
+6. PointCloud2 messages logged to Rerun with topic-based entity paths
+7. TF messages update transform buffer
+
+**Acceptance Criteria**:
+- [x] File button opens native file dialog
+- [x] .bag file filter works
+- [x] Bag metadata logged (topics, duration)
+- [x] Play button toggles playback
+- [x] PointCloud2 visualized in Rerun
+- [x] TF messages processed
+
+---
+
 ## Appendix: Task Dependencies Graph
 
 ```
@@ -1374,5 +1458,22 @@ Task 0.1 (Setup)
 │  Task 9.1 (ScrollBars)                            │
 │  Task 9.2 (Panel Widths: 340px)                   │
 │  Task 9.3 (Fixed Layout)                          │
+└───────────────────────────────────────────────────┘
+                    │
+                    ▼
+┌───────────────────────────────────────────────────┐
+│             Phase 10 [COMPLETED]                   │
+│                                                    │
+│  Task 10.1 (mviz-rosbag crate)                    │
+│       │                                            │
+│       ├── player.rs (RosBagPlayer)                │
+│       ├── messages.rs (BagMessage, MessageType)   │
+│       ├── pointcloud.rs (PointCloudProcessor)     │
+│       └── tf.rs (TfBuffer)                        │
+│                                                    │
+│  Task 10.2 (UI Integration)                       │
+│       │                                            │
+│       ├── File dialog (rfd crate)                 │
+│       └── Playback controls in app.rs             │
 └───────────────────────────────────────────────────┘
 ```

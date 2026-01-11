@@ -1,5 +1,54 @@
 # MViz Release Notes
 
+## v0.3.10 (2026-01-10)
+
+### Feature: ROS Bag Playback (Phase 10)
+
+Added ROS1 bag file playback support with visualization pipeline:
+rosbag → PointCloud2 parsing → TF transforms → Rerun visualization
+
+#### New Crate: mviz-rosbag
+
+**Core Player (player.rs):**
+- `RosBagPlayer::open()` - Open bag file and parse metadata
+- `RosBagPlayer::play()` / `pause()` / `stop()` - Playback control
+- `RosBagPlayer::seek()` - Seek to specific time
+- `RosBagPlayer::update()` - Process messages up to target time
+- `TopicInfo` - Topic metadata (name, type, count, md5sum)
+- `PlaybackState` enum - Stopped, Playing, Paused, Finished
+
+**Message Types (messages.rs):**
+- `BagMessage` - topic, msg_type, timestamp, data
+- `MessageType` enum - PointCloud2, TfMessage, LaserScan, Image, Odometry, Imu, PoseStamped, Twist, Unknown
+
+**Point Cloud Processing (pointcloud.rs):**
+- `Point` - x, y, z, intensity, ring
+- `PointCloudProcessor::parse()` - Parse PointCloud2 from raw bytes
+- Handles ROS1 message layout with field extraction
+
+**Transform Buffer (tf.rs):**
+- `Transform` - translation + quaternion with compose(), inverse()
+- `StampedTransform` - Transform with frame IDs and timestamp
+- `TfBuffer::lookup_transform()` - Chain lookup through common ancestor
+- `TfBuffer::process_tf_message()` - Parse TF messages
+
+#### UI Integration (mviz-shell)
+
+**File Dialog:**
+- File button opens native file dialog via `rfd` crate
+- Filter for `.bag` files
+
+**Playback Controls:**
+- Play button toggles bag playback (or simulation if no bag)
+- Timer-driven update at 50Hz
+- PointCloud2 logged to Rerun with topic-based entity paths
+
+#### Dependencies Added
+- `rosbag = "0.6"` - ROS1 bag file reading
+- `rfd = "0.15"` - Native file dialog
+
+---
+
 ## v0.3.9 (2026-01-10)
 
 ### Documentation: Sync Plan and Design with Actual Implementation
