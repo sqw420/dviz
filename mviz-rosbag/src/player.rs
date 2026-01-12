@@ -8,6 +8,8 @@ use rosbag::{RosBag, ChunkRecord, MessageRecord, IndexRecord};
 use crate::{Result, RosBagError, BagMessage, MessageType};
 use crate::tf::TfBuffer;
 use crate::pointcloud::PointCloudProcessor;
+use crate::imu::ImuProcessor;
+use crate::gps::GpsProcessor;
 
 /// Information about a topic in the bag
 #[derive(Debug, Clone)]
@@ -81,6 +83,12 @@ pub struct RosBagPlayer {
 
     /// Point cloud processor
     pointcloud_processor: PointCloudProcessor,
+
+    /// IMU processor
+    imu_processor: ImuProcessor,
+
+    /// GPS/NMEA processor
+    gps_processor: GpsProcessor,
 
     /// Topics to play (empty = all)
     selected_topics: Vec<String>,
@@ -190,6 +198,8 @@ impl RosBagPlayer {
             speed: 1.0,
             tf_buffer: TfBuffer::new(),
             pointcloud_processor: PointCloudProcessor::new(),
+            imu_processor: ImuProcessor::new(),
+            gps_processor: GpsProcessor::new(),
             selected_topics: Vec::new(),
             rerun_stream: None,
         })
@@ -384,6 +394,18 @@ impl RosBagPlayer {
             MessageType::TfMessage => {
                 self.process_tf(msg)?;
             }
+            MessageType::Imu => {
+                self.process_imu(msg)?;
+            }
+            MessageType::NmeaSentence => {
+                self.process_nmea(msg)?;
+            }
+            MessageType::TimeReference => {
+                self.process_time_reference(msg)?;
+            }
+            MessageType::Temperature => {
+                self.process_temperature(msg)?;
+            }
             MessageType::LaserScan => {
                 // TODO: Implement laser scan processing
             }
@@ -392,9 +414,6 @@ impl RosBagPlayer {
             }
             MessageType::Odometry => {
                 // TODO: Implement odometry processing
-            }
-            MessageType::Imu => {
-                // TODO: Implement IMU processing
             }
             MessageType::PoseStamped => {
                 // TODO: Implement pose processing
@@ -456,6 +475,178 @@ impl RosBagPlayer {
     /// Process a TF message
     fn process_tf(&mut self, msg: &BagMessage) -> Result<()> {
         self.tf_buffer.process_tf_message(&msg.data)?;
+        Ok(())
+    }
+
+    /// Process an IMU message
+    fn process_imu(&mut self, msg: &BagMessage) -> Result<()> {
+        let imu_data = self.imu_processor.parse(&msg.data)?;
+
+        if let Some(ref stream) = self.rerun_stream {
+            // Set timeline
+            let bag_time_ms = ((msg.timestamp - self.start_time) * 1000.0) as i64;
+            stream.set_time_sequence("bag_time", bag_time_ms);
+
+            // Entity path from topic name (e.g., /gpsimu_driver/imu_data -> world/imu)
+            let entity_base = "world/imu";
+
+            // Log angular velocity as Arrows3D
+            let av = imu_data.angular_velocity;
+            stream.log(
+                format!("{}/gyro_arrow", entity_base),
+                &rerun::Arrows3D::from_vectors([[av[0] as f32, av[1] as f32, av[2] as f32]])
+                    .with_colors([rerun::Color::from_rgb(255, 165, 0)]) // Orange
+                    .with_origins([[0.0, 0.0, 0.0]]),
+            ).ok();
+
+            // Log linear acceleration as Arrows3D
+            let la = imu_data.linear_acceleration;
+            stream.log(
+                format!("{}/accel_arrow", entity_base),
+                &rerun::Arrows3D::from_vectors([[la[0] as f32, la[1] as f32, la[2] as f32]])
+                    .with_colors([rerun::Color::from_rgb(0, 255, 255)]) // Cyan
+                    .with_origins([[0.0, 0.0, 0.0]]),
+            ).ok();
+
+            // Log scalar plots for accelerometer axes
+            stream.log(
+                format!("{}/accel_x", entity_base),
+                &rerun::Scalars::new([la[0]]),
+            ).ok();
+            stream.log(
+                format!("{}/accel_y", entity_base),
+                &rerun::Scalars::new([la[1]]),
+            ).ok();
+            stream.log(
+                format!("{}/accel_z", entity_base),
+                &rerun::Scalars::new([la[2]]),
+            ).ok();
+
+            // Log scalar plots for gyroscope axes
+            stream.log(
+                format!("{}/gyro_x", entity_base),
+                &rerun::Scalars::new([av[0]]),
+            ).ok();
+            stream.log(
+                format!("{}/gyro_y", entity_base),
+                &rerun::Scalars::new([av[1]]),
+            ).ok();
+            stream.log(
+                format!("{}/gyro_z", entity_base),
+                &rerun::Scalars::new([av[2]]),
+            ).ok();
+        }
+
+        Ok(())
+    }
+
+    /// Process an NMEA sentence message
+    fn process_nmea(&mut self, msg: &BagMessage) -> Result<()> {
+        let nmea = self.gps_processor.parse_nmea(&msg.data)?;
+
+        if let Some(ref stream) = self.rerun_stream {
+            // Set timeline
+            let bag_time_ms = ((msg.timestamp - self.start_time) * 1000.0) as i64;
+            stream.set_time_sequence("bag_time", bag_time_ms);
+
+            let entity_base = "world/gps";
+
+            // Log NMEA sentence as text
+            stream.log(
+                format!("{}/status", entity_base),
+                &rerun::TextLog::new(format!("[{}] {}", nmea.sentence_type, nmea.sentence)),
+            ).ok();
+
+            // If we have a GPS position, log it
+            if let Some(pos) = self.gps_processor.last_position() {
+                // Log position as 3D point (using lat/lon scaled, altitude as Z)
+                // For visualization, we scale lat/lon to meters (rough approximation)
+                let x = pos.longitude * 111320.0 * (pos.latitude.to_radians().cos());
+                let y = pos.latitude * 110540.0;
+                let z = pos.altitude;
+
+                stream.log(
+                    format!("{}/position", entity_base),
+                    &rerun::Points3D::new([[x as f32, y as f32, z as f32]])
+                        .with_colors([rerun::Color::from_rgb(0, 255, 0)]) // Green
+                        .with_radii([0.5]),
+                ).ok();
+
+                // Log lat/lon/alt as scalars for time series
+                stream.log(
+                    format!("{}/latitude", entity_base),
+                    &rerun::Scalars::new([pos.latitude]),
+                ).ok();
+                stream.log(
+                    format!("{}/longitude", entity_base),
+                    &rerun::Scalars::new([pos.longitude]),
+                ).ok();
+                stream.log(
+                    format!("{}/altitude", entity_base),
+                    &rerun::Scalars::new([pos.altitude]),
+                ).ok();
+                stream.log(
+                    format!("{}/satellites", entity_base),
+                    &rerun::Scalars::new([pos.num_satellites as f64]),
+                ).ok();
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Process a TimeReference message
+    fn process_time_reference(&mut self, msg: &BagMessage) -> Result<()> {
+        let time_ref = self.gps_processor.parse_time_reference(&msg.data)?;
+
+        if let Some(ref stream) = self.rerun_stream {
+            // Set timeline
+            let bag_time_ms = ((msg.timestamp - self.start_time) * 1000.0) as i64;
+            stream.set_time_sequence("bag_time", bag_time_ms);
+
+            let entity_base = "world/time_ref";
+
+            // Log time offset as scalar
+            let time_offset = time_ref.time_ref - time_ref.timestamp;
+            stream.log(
+                format!("{}/offset", entity_base),
+                &rerun::Scalars::new([time_offset]),
+            ).ok();
+
+            // Log as text
+            stream.log(
+                format!("{}/status", entity_base),
+                &rerun::TextLog::new(format!("Source: {}, Offset: {:.6}s", time_ref.source, time_offset)),
+            ).ok();
+        }
+
+        Ok(())
+    }
+
+    /// Process a Temperature message
+    fn process_temperature(&mut self, msg: &BagMessage) -> Result<()> {
+        let temp = self.gps_processor.parse_temperature(&msg.data)?;
+
+        if let Some(ref stream) = self.rerun_stream {
+            // Set timeline
+            let bag_time_ms = ((msg.timestamp - self.start_time) * 1000.0) as i64;
+            stream.set_time_sequence("bag_time", bag_time_ms);
+
+            let entity_base = "world/temperature";
+
+            // Log temperature as scalar
+            stream.log(
+                format!("{}/celsius", entity_base),
+                &rerun::Scalars::new([temp.temperature]),
+            ).ok();
+
+            // Log as text
+            stream.log(
+                format!("{}/status", entity_base),
+                &rerun::TextLog::new(format!("Temperature: {:.1}°C", temp.temperature)),
+            ).ok();
+        }
+
         Ok(())
     }
 }

@@ -30,11 +30,15 @@ pub mod player;
 pub mod pointcloud;
 pub mod tf;
 pub mod messages;
+pub mod imu;
+pub mod gps;
 
 pub use player::{RosBagPlayer, PlaybackState, TopicInfo};
 pub use pointcloud::PointCloudProcessor;
 pub use tf::TfBuffer;
 pub use messages::{BagMessage, MessageType};
+pub use imu::{ImuProcessor, ImuData};
+pub use gps::{GpsProcessor, NmeaSentence, GpsPosition, TimeReference, Temperature};
 
 use thiserror::Error;
 

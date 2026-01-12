@@ -1,5 +1,70 @@
 # MViz Release Notes
 
+## v0.3.12 (2026-01-11)
+
+### Feature: Multi-Sensor ROS Bag Visualization
+
+Extended ROS bag playback to visualize all sensor types with proper Rerun entity hierarchy and time synchronization.
+
+#### New Modules
+
+**mviz-rosbag/src/imu.rs:**
+- `ImuData` - orientation quaternion, angular velocity, linear acceleration
+- `ImuProcessor` - Parses sensor_msgs/Imu from raw bytes
+
+**mviz-rosbag/src/gps.rs:**
+- `NmeaSentence` - NMEA sentence with type extraction
+- `GpsPosition` - lat, lon, alt, fix_quality, satellites, hdop
+- `TimeReference` - GPS time reference with source and offset
+- `Temperature` - Temperature reading with variance
+- `GpsProcessor` - Parses nmea_msgs/Sentence, sensor_msgs/TimeReference, sensor_msgs/Temperature
+- GPGGA/GNGGA parsing for GPS position extraction
+
+#### Message Type Extensions
+
+- Added `MessageType::NmeaSentence`
+- Added `MessageType::TimeReference`
+- Added `MessageType::Temperature`
+
+#### Rerun Entity Hierarchy
+
+```
+world/
+├── lidar/                    Points3D (velodyne_points)
+├── imu/
+│   ├── accel_arrow/          Arrows3D (cyan)
+│   ├── gyro_arrow/           Arrows3D (orange)
+│   ├── accel_x, accel_y, accel_z  Scalars
+│   └── gyro_x, gyro_y, gyro_z     Scalars
+├── gps/
+│   ├── position/             Points3D (green)
+│   ├── status/               TextLog (NMEA)
+│   ├── latitude, longitude, altitude  Scalars
+│   └── satellites            Scalar
+├── time_ref/
+│   ├── offset/               Scalar
+│   └── status/               TextLog
+└── temperature/
+    ├── celsius/              Scalar
+    └── status/               TextLog
+```
+
+#### Tested Bag
+
+**hdl_400.bag** (126.32s, 5 topics):
+- `/velodyne_points` (sensor_msgs/PointCloud2) ✓
+- `/gpsimu_driver/imu_data` (sensor_msgs/Imu) ✓
+- `/gpsimu_driver/nmea_sentence` (nmea_msgs/Sentence) ✓
+- `/gpsimu_driver/gpstime` (sensor_msgs/TimeReference) ✓
+- `/gpsimu_driver/temperature` (sensor_msgs/Temperature) ✓
+
+#### Documentation
+
+- Updated mviz_plan.md with Task 10.3
+- Updated mviz_design.md with Section 9.7
+
+---
+
 ## v0.3.11 (2026-01-11)
 
 ### Fix: Connect Existing Bag Player to Rerun on Launch

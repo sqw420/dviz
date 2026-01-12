@@ -1358,6 +1358,89 @@ rosbag → PointCloud2 parsing → TF transforms → Rerun visualization
 - [x] PointCloud2 visualized in Rerun
 - [x] TF messages processed
 
+### Task 10.3: Multi-Sensor Visualization [COMPLETED v0.3.12]
+**Duration**: 4 hours
+**Status**: Implemented in mviz-rosbag/
+
+Added support for all sensor types found in ROS bags with proper Rerun visualization hierarchy.
+
+#### New Files Created
+
+**mviz-rosbag/src/imu.rs:**
+- `ImuData` - orientation quaternion, angular_velocity, linear_acceleration
+- `ImuProcessor` - Parses sensor_msgs/Imu from raw bytes
+- ROS1 message layout: header + orientation (4 doubles) + angular_velocity (3 doubles) + linear_acceleration (3 doubles)
+
+**mviz-rosbag/src/gps.rs:**
+- `NmeaSentence` - NMEA sentence with type extraction
+- `GpsPosition` - lat, lon, alt, fix_quality, num_satellites, hdop
+- `TimeReference` - GPS time reference with source and offset
+- `Temperature` - Temperature reading with variance
+- `GpsProcessor` - Parses nmea_msgs/Sentence, sensor_msgs/TimeReference, sensor_msgs/Temperature
+- GPGGA/GNGGA parsing for GPS position extraction
+
+#### Updated Files
+
+**mviz-rosbag/src/messages.rs:**
+- Added `MessageType::NmeaSentence`
+- Added `MessageType::TimeReference`
+- Added `MessageType::Temperature`
+- Updated `from_ros_type()` and `ros_type()` mappings
+
+**mviz-rosbag/src/lib.rs:**
+- Export new modules: `imu`, `gps`
+- Export types: `ImuProcessor`, `ImuData`, `GpsProcessor`, `NmeaSentence`, `GpsPosition`, `TimeReference`, `Temperature`
+
+**mviz-rosbag/src/player.rs:**
+- Added `ImuProcessor` and `GpsProcessor` fields
+- Added processing functions:
+  - `process_imu()` - Logs arrows + scalar plots
+  - `process_nmea()` - Logs GPS position + text + scalars
+  - `process_time_reference()` - Logs time offset scalar
+  - `process_temperature()` - Logs temperature scalar
+
+#### Rerun Entity Hierarchy
+
+```
+world/
+├── lidar/                    (from /velodyne_points)
+│   └── Points3D
+├── imu/                      (from /gpsimu_driver/imu_data)
+│   ├── accel_arrow/          Arrows3D (cyan)
+│   ├── gyro_arrow/           Arrows3D (orange)
+│   ├── accel_x, accel_y, accel_z   Scalars (time series)
+│   └── gyro_x, gyro_y, gyro_z      Scalars (time series)
+├── gps/                      (from /gpsimu_driver/nmea_sentence)
+│   ├── position/             Points3D (green)
+│   ├── status/               TextLog (NMEA sentences)
+│   ├── latitude, longitude, altitude  Scalars
+│   └── satellites            Scalar
+├── time_ref/                 (from /gpsimu_driver/gpstime)
+│   ├── offset/               Scalar (time offset)
+│   └── status/               TextLog
+└── temperature/              (from /gpsimu_driver/temperature)
+    ├── celsius/              Scalar (time series)
+    └── status/               TextLog
+```
+
+#### Tested Bag
+
+**hdl_400.bag** (126.32s, 5 topics):
+- `/velodyne_points` (sensor_msgs/PointCloud2) ✓
+- `/gpsimu_driver/imu_data` (sensor_msgs/Imu) ✓
+- `/gpsimu_driver/nmea_sentence` (nmea_msgs/Sentence) ✓
+- `/gpsimu_driver/gpstime` (sensor_msgs/TimeReference) ✓
+- `/gpsimu_driver/temperature` (sensor_msgs/Temperature) ✓
+
+**Acceptance Criteria**:
+- [x] IMU data visualized as arrows and scalar plots
+- [x] NMEA sentences parsed and GPS position extracted
+- [x] GPS position visualized as 3D point
+- [x] Time reference offset logged as scalar
+- [x] Temperature logged as scalar time series
+- [x] All topics use proper Rerun entity hierarchy
+- [x] Time synchronization via bag_time timeline
+
 ---
 
 ## Appendix: Task Dependencies Graph
@@ -1475,5 +1558,11 @@ Task 0.1 (Setup)
 │       │                                            │
 │       ├── File dialog (rfd crate)                 │
 │       └── Playback controls in app.rs             │
+│                                                    │
+│  Task 10.3 (Multi-Sensor Visualization)           │
+│       │                                            │
+│       ├── imu.rs (ImuProcessor, ImuData)          │
+│       ├── gps.rs (GpsProcessor, NMEA, TimeRef)    │
+│       └── All topics visualized in Rerun          │
 └───────────────────────────────────────────────────┘
 ```

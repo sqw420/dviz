@@ -36,6 +36,12 @@ pub enum MessageType {
     PoseStamped,
     /// geometry_msgs/Twist
     Twist,
+    /// nmea_msgs/Sentence (GPS NMEA)
+    NmeaSentence,
+    /// sensor_msgs/TimeReference
+    TimeReference,
+    /// sensor_msgs/Temperature
+    Temperature,
     /// Unknown message type
     Unknown(String),
 }
@@ -52,6 +58,9 @@ impl MessageType {
             "sensor_msgs/Imu" => MessageType::Imu,
             "geometry_msgs/PoseStamped" => MessageType::PoseStamped,
             "geometry_msgs/Twist" => MessageType::Twist,
+            "nmea_msgs/Sentence" => MessageType::NmeaSentence,
+            "sensor_msgs/TimeReference" => MessageType::TimeReference,
+            "sensor_msgs/Temperature" => MessageType::Temperature,
             _ => MessageType::Unknown(ros_type.to_string()),
         }
     }
@@ -67,6 +76,9 @@ impl MessageType {
             MessageType::Imu => "sensor_msgs/Imu",
             MessageType::PoseStamped => "geometry_msgs/PoseStamped",
             MessageType::Twist => "geometry_msgs/Twist",
+            MessageType::NmeaSentence => "nmea_msgs/Sentence",
+            MessageType::TimeReference => "sensor_msgs/TimeReference",
+            MessageType::Temperature => "sensor_msgs/Temperature",
             MessageType::Unknown(s) => s,
         }
     }
@@ -80,6 +92,10 @@ impl MessageType {
                 | MessageType::Image
                 | MessageType::Odometry
                 | MessageType::PoseStamped
+                | MessageType::Imu
+                | MessageType::NmeaSentence
+                | MessageType::TimeReference
+                | MessageType::Temperature
         )
     }
 }

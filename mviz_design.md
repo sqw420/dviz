@@ -4759,3 +4759,193 @@ content = <View> {
     }
 }
 ```
+
+---
+
+## 9.7 ROS Bag Multi-Sensor Visualization (Phase 10.3) [IMPLEMENTED v0.3.12]
+
+### Overview
+
+Extended ROS bag playback to visualize all sensor types with proper Rerun entity hierarchy and time synchronization.
+
+### Entity Hierarchy
+
+```
+world/
+├── lidar/                    ← PointCloud2 (velodyne_points)
+│   └── Points3D
+├── imu/                      ← sensor_msgs/Imu
+│   ├── accel_arrow/          Arrows3D (cyan, linear acceleration)
+│   ├── gyro_arrow/           Arrows3D (orange, angular velocity)
+│   ├── accel_x, accel_y, accel_z   Scalars (time series)
+│   └── gyro_x, gyro_y, gyro_z      Scalars (time series)
+├── gps/                      ← nmea_msgs/Sentence
+│   ├── position/             Points3D (green, GPS position)
+│   ├── status/               TextLog (NMEA sentences)
+│   ├── latitude, longitude, altitude  Scalars
+│   └── satellites            Scalar
+├── time_ref/                 ← sensor_msgs/TimeReference
+│   ├── offset/               Scalar (time offset from GPS)
+│   └── status/               TextLog
+└── temperature/              ← sensor_msgs/Temperature
+    ├── celsius/              Scalar (time series)
+    └── status/               TextLog
+```
+
+### Message Parsers
+
+#### IMU Parser (imu.rs)
+
+```rust
+pub struct ImuData {
+    pub timestamp: f64,
+    pub orientation: [f64; 4],          // quaternion (x, y, z, w)
+    pub angular_velocity: [f64; 3],     // rad/s
+    pub linear_acceleration: [f64; 3],  // m/s^2
+}
+
+pub struct ImuProcessor {
+    pub frame_id: String,
+    pub timestamp: f64,
+}
+
+impl ImuProcessor {
+    pub fn parse(&mut self, data: &[u8]) -> Result<ImuData>;
+}
+```
+
+ROS1 sensor_msgs/Imu layout:
+- header (seq: 4, stamp: 8, frame_id: 4+len)
+- orientation (4 × 8 bytes = 32 bytes)
+- orientation_covariance (9 × 8 = 72 bytes, skipped)
+- angular_velocity (3 × 8 = 24 bytes)
+- angular_velocity_covariance (72 bytes, skipped)
+- linear_acceleration (3 × 8 = 24 bytes)
+- linear_acceleration_covariance (72 bytes, skipped)
+
+#### GPS/NMEA Parser (gps.rs)
+
+```rust
+pub struct NmeaSentence {
+    pub timestamp: f64,
+    pub sentence: String,
+    pub sentence_type: String,  // e.g., "GPGGA", "GPRMC"
+}
+
+pub struct GpsPosition {
+    pub latitude: f64,
+    pub longitude: f64,
+    pub altitude: f64,
+    pub fix_quality: u8,
+    pub num_satellites: u8,
+    pub hdop: f32,
+}
+
+pub struct TimeReference {
+    pub timestamp: f64,
+    pub source: String,
+    pub time_ref: f64,
+}
+
+pub struct Temperature {
+    pub timestamp: f64,
+    pub temperature: f64,
+    pub variance: f64,
+}
+
+pub struct GpsProcessor {
+    pub frame_id: String,
+    pub timestamp: f64,
+    pub last_position: Option<GpsPosition>,
+}
+
+impl GpsProcessor {
+    pub fn parse_nmea(&mut self, data: &[u8]) -> Result<NmeaSentence>;
+    pub fn parse_time_reference(&mut self, data: &[u8]) -> Result<TimeReference>;
+    pub fn parse_temperature(&mut self, data: &[u8]) -> Result<Temperature>;
+}
+```
+
+NMEA GPGGA parsing extracts:
+- Latitude/Longitude from fields 2-5 (ddmm.mmmmm format)
+- Fix quality from field 6
+- Number of satellites from field 7
+- HDOP from field 8
+- Altitude from field 9
+
+### Rerun Visualization
+
+#### IMU Visualization
+
+```rust
+fn process_imu(&mut self, msg: &BagMessage) -> Result<()> {
+    let imu_data = self.imu_processor.parse(&msg.data)?;
+    
+    // Angular velocity as orange arrow
+    stream.log("world/imu/gyro_arrow",
+        &rerun::Arrows3D::from_vectors([[av[0], av[1], av[2]]])
+            .with_colors([Color::from_rgb(255, 165, 0)])
+            .with_origins([[0.0, 0.0, 0.0]]));
+    
+    // Linear acceleration as cyan arrow
+    stream.log("world/imu/accel_arrow",
+        &rerun::Arrows3D::from_vectors([[la[0], la[1], la[2]]])
+            .with_colors([Color::from_rgb(0, 255, 255)])
+            .with_origins([[0.0, 0.0, 0.0]]));
+    
+    // Scalar time series for each axis
+    stream.log("world/imu/accel_x", &rerun::Scalars::new([la[0]]));
+    stream.log("world/imu/gyro_x", &rerun::Scalars::new([av[0]]));
+    // ... etc
+}
+```
+
+#### GPS Visualization
+
+```rust
+fn process_nmea(&mut self, msg: &BagMessage) -> Result<()> {
+    let nmea = self.gps_processor.parse_nmea(&msg.data)?;
+    
+    // Log NMEA sentence as text
+    stream.log("world/gps/status",
+        &rerun::TextLog::new(format!("[{}] {}", nmea.sentence_type, nmea.sentence)));
+    
+    // If position available, log as 3D point
+    if let Some(pos) = self.gps_processor.last_position() {
+        // Convert lat/lon to meters (rough approximation)
+        let x = pos.longitude * 111320.0 * (pos.latitude.to_radians().cos());
+        let y = pos.latitude * 110540.0;
+        let z = pos.altitude;
+        
+        stream.log("world/gps/position",
+            &rerun::Points3D::new([[x, y, z]])
+                .with_colors([Color::from_rgb(0, 255, 0)])
+                .with_radii([0.5]));
+        
+        // Log lat/lon/alt as scalars
+        stream.log("world/gps/latitude", &rerun::Scalars::new([pos.latitude]));
+        stream.log("world/gps/longitude", &rerun::Scalars::new([pos.longitude]));
+    }
+}
+```
+
+### Message Type Mapping
+
+| ROS Type | MessageType | Rerun Types |
+|----------|-------------|-------------|
+| sensor_msgs/PointCloud2 | PointCloud2 | Points3D |
+| sensor_msgs/Imu | Imu | Arrows3D, Scalars |
+| nmea_msgs/Sentence | NmeaSentence | Points3D, TextLog, Scalars |
+| sensor_msgs/TimeReference | TimeReference | Scalars, TextLog |
+| sensor_msgs/Temperature | Temperature | Scalars, TextLog |
+| tf2_msgs/TFMessage | TfMessage | (internal TfBuffer) |
+
+### Time Synchronization
+
+All messages use `bag_time` timeline:
+```rust
+let bag_time_ms = ((msg.timestamp - self.start_time) * 1000.0) as i64;
+stream.set_time_sequence("bag_time", bag_time_ms);
+```
+
+This ensures Rerun displays all sensor data synchronized to bag playback time.
