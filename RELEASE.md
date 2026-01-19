@@ -1,5 +1,58 @@
 # MViz Release Notes
 
+## v0.3.13 (2026-01-18)
+
+### Feature: Auto-Connect Zenoh and Theme System Enhancement
+
+Removed manual Zenoh connection button and merged mofa-studio theme system for better UI consistency and future dark mode support.
+
+#### Zenoh Auto-Connect
+
+**mviz-shell/src/app.rs:**
+- Removed `zenoh_btn` button from toolbar UI
+- Added `start_zenoh_connection()` method for automatic startup connection
+- Zenoh now auto-connects on app launch via `handle_startup()`
+- Status label shows "Zenoh: Connecting...", "Zenoh: Connected" states
+- No manual intervention required for LAN data reception
+
+#### Theme System Enhancement
+
+**mviz-widgets/src/theme.rs:**
+- Merged comprehensive Tailwind CSS color palette from mofa-studio
+- Added full color scales: Slate, Gray, Blue, Indigo, Green, Red, Emerald, Yellow/Amber, Orange (50-900 shades)
+- Added dark theme semantic colors: `DARK_BG_DARK`, `PANEL_BG_DARK`, `TEXT_PRIMARY_DARK`, etc.
+- Added `ThemeableView` and `ThemeableRoundedView` base widgets with `dark_mode` instance variable
+- Enhanced `PrimaryButton` and `IconButton` with dark mode support
+- Added comprehensive documentation with usage examples
+
+**mviz-widgets/src/properties_panel.rs:**
+- Replaced hardcoded hex colors with theme constants:
+  - `#eef2f7` -> `(INPUT_BG)`
+  - `#f1f5f9` -> `(SLATE_100)`
+  - `#ef4444` -> `(RED_500)` (X axis)
+  - `#22c55e` -> `(GREEN_500)` (Y axis)
+  - `#3b82f6` -> `(BLUE_500)` (Z axis)
+  - `#f5f7fa` -> `(DARK_BG)`
+
+#### Dark Mode Support (Foundation)
+
+Widgets can now support dark mode via shader instance variables:
+```rust
+draw_bg: {
+    instance dark_mode: 0.0  // 0.0 = light, 1.0 = dark
+    fn pixel(self) -> vec4 {
+        return mix((PANEL_BG), (PANEL_BG_DARK), self.dark_mode);
+    }
+}
+```
+
+Update at runtime via `apply_over`:
+```rust
+widget.apply_over(cx, live!{ draw_bg: { dark_mode: 1.0 } });
+```
+
+---
+
 ## v0.3.12 (2026-01-11)
 
 ### Feature: Multi-Sensor ROS Bag Visualization

@@ -18,7 +18,7 @@ live_design! {
 
     use crate::theme::*;
 
-    // Log entry item
+    // Log entry item - modern tinted theme
     pub LogEntryItem = <View> {
         width: Fill, height: Fit
         flow: Down
@@ -27,11 +27,11 @@ live_design! {
         draw_bg: {
             instance level: 0.0  // 0=debug, 1=info, 2=warn, 3=error
             fn pixel(self) -> vec4 {
-                // Very subtle background based on level
-                let debug = vec4(0.14, 0.14, 0.14, 1.0);
-                let info = vec4(0.14, 0.15, 0.17, 1.0);
-                let warn = vec4(0.17, 0.16, 0.14, 1.0);
-                let error = vec4(0.18, 0.14, 0.14, 1.0);
+                // Tinted backgrounds with more color
+                let debug = vec4(0.95, 0.96, 0.97, 1.0);   // Light slate
+                let info = vec4(0.90, 0.95, 1.0, 1.0);     // Light blue tint
+                let warn = vec4(1.0, 0.96, 0.89, 1.0);     // Light amber tint
+                let error = vec4(1.0, 0.92, 0.92, 1.0);    // Light red tint
                 let color = mix(mix(debug, info, clamp(self.level, 0.0, 1.0)),
                                mix(warn, error, clamp(self.level - 2.0, 0.0, 1.0)),
                                clamp(self.level - 1.0, 0.0, 1.0) * 0.5 + clamp(self.level - 2.0, 0.0, 1.0) * 0.5);
@@ -46,17 +46,17 @@ live_design! {
             spacing: 8
             align: {y: 0.5}
 
-            // Timestamp
+            // Timestamp - light theme
             timestamp = <Label> {
                 width: 60
                 text: "0.00s"
                 draw_text: {
-                    color: #666
+                    color: #9ca3af
                     text_style: { font_size: 9.0 }
                 }
             }
 
-            // Level badge
+            // Level badge - light theme
             level_badge = <View> {
                 width: Fit, height: Fit
                 padding: {left: 6, right: 6, top: 2, bottom: 2}
@@ -66,10 +66,10 @@ live_design! {
                     fn pixel(self) -> vec4 {
                         let sdf = Sdf2d::viewport(self.pos * self.rect_size);
                         sdf.box(0., 0., self.rect_size.x, self.rect_size.y, 3.0);
-                        let debug = vec4(0.5, 0.5, 0.5, 0.3);
-                        let info = vec4(0.4, 0.7, 1.0, 0.3);
-                        let warn = vec4(1.0, 0.78, 0.2, 0.3);
-                        let error = vec4(1.0, 0.3, 0.3, 0.3);
+                        let debug = vec4(0.6, 0.6, 0.6, 0.2);
+                        let info = vec4(0.23, 0.51, 0.96, 0.2);
+                        let warn = vec4(0.96, 0.62, 0.04, 0.3);
+                        let error = vec4(0.94, 0.27, 0.27, 0.3);
                         let color = mix(mix(debug, info, clamp(self.level, 0.0, 1.0)),
                                        mix(warn, error, clamp(self.level - 2.0, 0.0, 1.0)),
                                        clamp(self.level - 1.0, 0.0, 1.0) * 0.5 + clamp(self.level - 2.0, 0.0, 1.0) * 0.5);
@@ -81,29 +81,29 @@ live_design! {
                 level_text = <Label> {
                     text: "INFO"
                     draw_text: {
-                        color: #aaa
+                        color: #374151
                         text_style: { font_size: 8.0 }
                     }
                 }
             }
 
-            // Node name
+            // Node name - light theme
             node_name = <Label> {
                 width: Fit
                 text: "[node]"
                 draw_text: {
-                    color: #8af
+                    color: #2564fb
                     text_style: { font_size: 9.0 }
                 }
             }
         }
 
-        // Message text
+        // Message text - light theme
         message = <Label> {
             width: Fill
             text: "Log message"
             draw_text: {
-                color: #ccc
+                color: #374151
                 text_style: { font_size: 10.0 }
                 wrap: Word
             }
@@ -129,7 +129,7 @@ live_design! {
             align: {y: 0.5}
             cursor: Hand
 
-            // Collapse arrow
+            // Collapse arrow - light theme
             collapse_icon = <View> {
                 width: 16, height: 16
                 show_bg: true
@@ -153,7 +153,7 @@ live_design! {
                             sdf.line_to(6.0, 12.0);
                             sdf.close_path();
                         }
-                        sdf.fill(vec4(0.6, 0.6, 0.6, 1.0));
+                        sdf.fill(vec4(0.42, 0.44, 0.48, 1.0)); // Gray (#6b7280)
                         return sdf.result;
                     }
                 }
@@ -178,22 +178,22 @@ live_design! {
                 }
             }
 
-            // Copy button
+            // Copy button - light theme
             copy_btn = <Button> {
                 width: Fit, height: Fit
                 text: "Copy"
-                draw_text: { color: #888 }
+                draw_text: { color: #6b7280 }
             }
 
-            // Clear button
+            // Clear button - light theme
             clear_btn = <Button> {
                 width: Fit, height: Fit
                 text: "Clear"
-                draw_text: { color: #888 }
+                draw_text: { color: #6b7280 }
             }
         }
 
-        // Filter row
+        // Filter row - light theme
         filter_row = <View> {
             width: Fill, height: Fit
             flow: Right
@@ -204,7 +204,7 @@ live_design! {
             // Level filter
             <Label> {
                 text: "Level:"
-                draw_text: { color: #888, text_style: { font_size: 10.0 } }
+                draw_text: { color: #6b7280, text_style: { font_size: 10.0 } }
             }
             level_filter = <DropDown> {
                 width: 80, height: 26
@@ -214,10 +214,10 @@ live_design! {
 
             <View> { width: 12, height: 1 }
 
-            // Node filter
+            // Node filter - light theme
             <Label> {
                 text: "Node:"
-                draw_text: { color: #888, text_style: { font_size: 10.0 } }
+                draw_text: { color: #6b7280, text_style: { font_size: 10.0 } }
             }
             node_filter = <DropDown> {
                 width: 120, height: 26
@@ -227,10 +227,10 @@ live_design! {
 
             <View> { width: 12, height: 1 }
 
-            // Search input
+            // Search input - light theme
             <Label> {
                 text: "Search:"
-                draw_text: { color: #888, text_style: { font_size: 10.0 } }
+                draw_text: { color: #6b7280, text_style: { font_size: 10.0 } }
             }
             search_input = <TextInput> {
                 width: Fill, height: 26
@@ -243,7 +243,7 @@ live_design! {
             draw_bg: { color: (DIVIDER) }
         }
 
-        // Log content area (scrollable)
+        // Log content area (scrollable) - light theme
         log_scroll = <ScrollYView> {
             width: Fill, height: Fill
 
@@ -251,7 +251,7 @@ live_design! {
                 width: Fill, height: Fit
                 text: ""
                 draw_text: {
-                    color: #aaa
+                    color: #374151
                     text_style: { font_size: 10.0 }
                     wrap: Word
                 }

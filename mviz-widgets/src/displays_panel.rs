@@ -12,7 +12,7 @@ live_design! {
 
     use crate::theme::*;
 
-    // Single display list item
+    // Single display list item - modern tinted theme
     pub DisplayListItem = {{DisplayListItem}} <View> {
         width: Fill, height: Fit
         flow: Right
@@ -24,9 +24,9 @@ live_design! {
             instance hover: 0.0
             instance selected: 0.0
             fn pixel(self) -> vec4 {
-                let base = vec4(0.15, 0.15, 0.15, 0.0);
-                let hover_color = vec4(0.2, 0.2, 0.2, 1.0);
-                let selected_color = vec4(0.23, 0.51, 0.96, 0.2);
+                let base = vec4(0.97, 0.98, 0.99, 1.0);        // Slightly tinted (#f8fafc)
+                let hover_color = vec4(0.88, 0.91, 0.94, 1.0); // Slate-200 hover (#e2e8f0)
+                let selected_color = vec4(0.85, 0.92, 0.98, 1.0); // Light blue selected
                 return mix(mix(base, hover_color, self.hover), selected_color, self.selected);
             }
         }
@@ -180,7 +180,7 @@ live_design! {
         }
     }
 
-    // Add display button
+    // Add display button - modern tinted theme with blue accent
     pub AddDisplayButton = <View> {
         width: Fill, height: Fit
         flow: Right
@@ -192,9 +192,9 @@ live_design! {
             instance hover: 0.0
             fn pixel(self) -> vec4 {
                 let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                sdf.box(0., 0., self.rect_size.x, self.rect_size.y, 4.0);
-                let base = vec4(0.18, 0.18, 0.18, 1.0);
-                let hover_color = vec4(0.25, 0.25, 0.25, 1.0);
+                sdf.box(0., 0., self.rect_size.x, self.rect_size.y, 6.0);
+                let base = vec4(0.88, 0.92, 0.96, 1.0);      // Light blue-gray (#e0eaf5)
+                let hover_color = vec4(0.80, 0.87, 0.93, 1.0); // Darker blue on hover
                 sdf.fill(mix(base, hover_color, self.hover));
                 return sdf.result;
             }
@@ -211,10 +211,10 @@ live_design! {
                     let cy = self.rect_size.y * 0.5;
                     sdf.move_to(cx, 4.0);
                     sdf.line_to(cx, 14.0);
-                    sdf.stroke(vec4(0.5, 0.5, 0.5, 1.0), 2.0);
+                    sdf.stroke(vec4(0.42, 0.44, 0.48, 1.0), 2.0); // Gray (#6b7280)
                     sdf.move_to(4.0, cy);
                     sdf.line_to(14.0, cy);
-                    sdf.stroke(vec4(0.5, 0.5, 0.5, 1.0), 2.0);
+                    sdf.stroke(vec4(0.42, 0.44, 0.48, 1.0), 2.0);
                     return sdf.result;
                 }
             }

@@ -75,7 +75,103 @@ This document provides detailed architecture and design specifications for build
 
 ## 2. Crate/Module Structure
 
-### 2.1 Workspace Organization
+### 2.1 Actual Workspace Organization (Implemented)
+
+```
+mviz/
+├── Cargo.toml                    # Workspace root
+├── mviz-core/                    # Core types and protocols [IMPLEMENTED]
+│   ├── src/
+│   │   ├── lib.rs
+│   │   ├── types/
+│   │   │   ├── mod.rs
+│   │   │   ├── transform.rs      # Transform, Pose, Timestamp
+│   │   │   ├── point_cloud.rs    # PointCloud, Color, ColorMode
+│   │   │   └── marker.rs         # Marker types
+│   │   ├── config.rs             # AppConfig, DisplayConfig
+│   │   ├── display.rs            # Display trait
+│   │   └── zenoh_protocol.rs     # Universal vis protocol [NEW]
+│   └── Cargo.toml
+│
+├── mviz-transform/               # Transform system [IMPLEMENTED]
+│   ├── src/
+│   │   ├── lib.rs
+│   │   ├── frame_tree.rs         # Frame hierarchy
+│   │   └── transform_buffer.rs   # Time-indexed transforms
+│   └── Cargo.toml
+│
+├── mviz-rerun-bridge/            # Rerun integration [IMPLEMENTED]
+│   ├── src/
+│   │   ├── lib.rs
+│   │   ├── bridge.rs             # RerunBridge, RerunConfig
+│   │   ├── adapters.rs           # Point cloud/marker adapters
+│   │   ├── core_adapters.rs      # Transform adapters
+│   │   └── simulation.rs         # SensorSimulator
+│   └── Cargo.toml
+│
+├── mviz-displays/                # Display plugins [IMPLEMENTED]
+│   ├── src/
+│   │   ├── lib.rs
+│   │   ├── base.rs               # BaseDisplay helper
+│   │   ├── grid.rs               # GridDisplay ✓
+│   │   ├── axes.rs               # AxesDisplay ✓
+│   │   ├── tf.rs                 # TfDisplay ✓
+│   │   ├── point_cloud.rs        # PointCloudDisplay ✓
+│   │   ├── marker.rs             # MarkerDisplay ✓
+│   │   ├── robot_model.rs        # RobotModelDisplay ✓
+│   │   └── laser_scan.rs         # LaserScanDisplay ✓
+│   └── Cargo.toml
+│
+├── mviz-urdf/                    # URDF parsing [IMPLEMENTED]
+│   ├── src/
+│   │   ├── lib.rs
+│   │   ├── parser.rs             # parse_urdf(), RobotDescription
+│   │   ├── robot.rs              # Robot, Link, Joint structs
+│   │   └── mesh_loader.rs        # STL/DAE/OBJ loaders
+│   └── Cargo.toml
+│
+├── mviz-rosbag/                  # ROS bag playback [IMPLEMENTED]
+│   ├── src/
+│   │   ├── lib.rs
+│   │   ├── player.rs             # RosBagPlayer ✓
+│   │   ├── messages.rs           # MessageType enum ✓
+│   │   ├── pointcloud.rs         # PointCloud2 parser ✓
+│   │   ├── tf.rs                 # TfBuffer ✓
+│   │   ├── imu.rs                # ImuProcessor ✓
+│   │   └── gps.rs                # GpsProcessor, NMEA ✓
+│   └── Cargo.toml
+│
+├── mviz-widgets/                 # Makepad UI widgets [IMPLEMENTED]
+│   ├── src/
+│   │   ├── lib.rs
+│   │   ├── theme.rs              # Theme colors and styles
+│   │   ├── displays_panel.rs     # DisplaysPanel ✓
+│   │   ├── properties_panel.rs   # PropertiesPanel ✓
+│   │   ├── toolbar.rs            # Toolbar ✓
+│   │   ├── log_panel.rs          # LogPanel ✓
+│   │   ├── node_detail_panel.rs  # NodeDetailPanel ✓
+│   │   ├── dataflow_graph.rs     # DataflowGraphWidget ✓
+│   │   ├── sensor_panel.rs       # SensorGroup
+│   │   └── control_bar.rs        # ControlBar
+│   └── Cargo.toml
+│
+├── mviz-shell/                   # Main application [IMPLEMENTED]
+│   ├── src/
+│   │   ├── main.rs               # Entry point
+│   │   ├── lib.rs
+│   │   ├── app.rs                # App struct, UI layout
+│   │   ├── dora_receiver.rs      # Dora dataflow integration
+│   │   └── zenoh_receiver.rs     # Zenoh universal receiver [NEW]
+│   ├── resources/
+│   │   └── icons/viz.svg         # App icon
+│   └── Cargo.toml
+│
+└── docs/                         # Documentation
+    ├── mviz_plan.md
+    └── mviz_design.md
+```
+
+### 2.1.1 Original Design (Reference)
 
 ```
 robotics-viz/
@@ -2504,9 +2600,21 @@ impl From<serde_yaml::Error> for ConfigError {
 
 ---
 
-## 9. Makepad UI Architecture
+## 9. Makepad UI Architecture [IMPLEMENTED]
 
-### 9.1 Application Structure (`rv-ui/src/app.rs`)
+### 9.1 Application Structure
+
+**Actual Implementation**: `mviz-shell/src/app.rs`
+
+The original design specified `rv-ui/src/app.rs`, but the actual implementation uses `mviz-shell/src/app.rs` with the following key features:
+
+- **Light Theme**: Modern tinted light theme (LIGHT_BG #f0f4f8, PANEL_BG #f8fafc, etc.)
+- **Three-Column Layout**: Fixed-width left/right panels (340px each) with center fill
+- **Data Sources**: Simulator, Dora (legacy), and Zenoh (universal protocol)
+- **ROS Bag Playback**: File dialog for loading .bag files with multi-sensor support
+- **Window Configuration**: 1400x850 default size, titled "MViz - Robotics Visualizer"
+
+### 9.1.1 Original Design Reference (`rv-ui/src/app.rs`)
 
 ```rust
 use makepad_widgets::*;
@@ -2674,7 +2782,18 @@ impl App {
 app_main!(App);
 ```
 
-### 9.2 Displays Panel Widget (`rv-ui/src/widgets/display_panel.rs`)
+### 9.2 Displays Panel Widget [IMPLEMENTED]
+
+**Actual Implementation**: `mviz-widgets/src/displays_panel.rs`
+
+The original design specified `rv-ui/src/widgets/display_panel.rs`. The actual implementation in `mviz-widgets/src/displays_panel.rs` provides:
+
+- Display list with checkboxes for enable/disable
+- Add Display button with display type cycling (Grid, Axes, PointCloud, LaserScan, TF)
+- Selection events via `DisplaysPanelAction` enum
+- Status indicators with light theme colors
+
+### 9.2.1 Original Design Reference (`rv-ui/src/widgets/display_panel.rs`)
 
 ```rust
 use makepad_widgets::*;
@@ -2819,7 +2938,9 @@ impl Widget for DisplayListItem {
 }
 ```
 
-### 9.3 System Log Panel Widget (`mviz-widgets/src/log_panel.rs`)
+### 9.3 System Log Panel Widget [IMPLEMENTED]
+
+**Actual Implementation**: `mviz-widgets/src/log_panel.rs`
 
 The System Log Panel displays log messages from robot nodes over Zenoh, with dynamic node discovery and filtering.
 

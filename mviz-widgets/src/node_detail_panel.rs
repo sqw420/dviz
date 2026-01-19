@@ -16,16 +16,16 @@ live_design! {
 
     use crate::theme::*;
 
-    // Node Detail Panel - replaces center panel content
+    // Node Detail Panel - light theme
     pub NodeDetailPanel = {{NodeDetailPanel}} <RoundedView> {
         width: Fill, height: Fill
         flow: Down
         padding: 16
         spacing: 12
         show_bg: true
-        draw_bg: { color: #1e1e1e, border_radius: 8.0 }
+        draw_bg: { color: (PANEL_BG), border_radius: 8.0 }
 
-        // Header with node selector
+        // Header with node selector - light theme
         header = <View> {
             width: Fill, height: Fit
             flow: Right
@@ -34,7 +34,7 @@ live_design! {
 
             <Label> {
                 text: "NODE:"
-                draw_text: { color: #888888, text_style: { font_size: 12.0 } }
+                draw_text: { color: #6b7280, text_style: { font_size: 12.0 } }
             }
 
             node_selector = <DropDown> {
@@ -56,14 +56,14 @@ live_design! {
             }
         }
 
-        // Separator
+        // Separator - light theme
         <View> {
             width: Fill, height: 1
             show_bg: true
-            draw_bg: { color: #333333 }
+            draw_bg: { color: (DIVIDER) }
         }
 
-        // Input/Output columns
+        // Input/Output columns - light theme
         io_section = <View> {
             width: Fill, height: 160
             flow: Right
@@ -77,25 +77,25 @@ live_design! {
 
                 <Label> {
                     text: "INPUTS:"
-                    draw_text: { color: #fbbf24, text_style: { font_size: 11.0 } }
+                    draw_text: { color: #d97706, text_style: { font_size: 11.0 } }
                 }
 
                 inputs_content = <Label> {
                     width: Fill, height: Fill
                     text: "  (select a node)"
                     draw_text: {
-                        color: #888888
+                        color: #6b7280
                         text_style: { font_size: 10.0 }
                         wrap: Word
                     }
                 }
             }
 
-            // Vertical separator
+            // Vertical separator - light theme
             <View> {
                 width: 1, height: Fill
                 show_bg: true
-                draw_bg: { color: #333333 }
+                draw_bg: { color: (DIVIDER) }
             }
 
             // Outputs column
@@ -106,14 +106,14 @@ live_design! {
 
                 <Label> {
                     text: "OUTPUTS:"
-                    draw_text: { color: #60a5fa, text_style: { font_size: 11.0 } }
+                    draw_text: { color: #2564fb, text_style: { font_size: 11.0 } }
                 }
 
                 outputs_content = <Label> {
                     width: Fill, height: Fill
                     text: "  (select a node)"
                     draw_text: {
-                        color: #888888
+                        color: #6b7280
                         text_style: { font_size: 10.0 }
                         wrap: Word
                     }
@@ -121,14 +121,14 @@ live_design! {
             }
         }
 
-        // Separator
+        // Separator - light theme
         <View> {
             width: Fill, height: 1
             show_bg: true
-            draw_bg: { color: #333333 }
+            draw_bg: { color: (DIVIDER) }
         }
 
-        // Logs section header
+        // Logs section header - light theme
         logs_header = <View> {
             width: Fill, height: Fit
             flow: Right
@@ -137,12 +137,12 @@ live_design! {
 
             <Label> {
                 text: "NODE LOGS:"
-                draw_text: { color: #a0a0a0, text_style: { font_size: 11.0 } }
+                draw_text: { color: #374151, text_style: { font_size: 11.0 } }
             }
 
             log_count = <Label> {
                 text: "0 entries"
-                draw_text: { color: #606060, text_style: { font_size: 10.0 } }
+                draw_text: { color: #9ca3af, text_style: { font_size: 10.0 } }
             }
 
             <View> { width: Fill, height: 1 }
@@ -151,11 +151,11 @@ live_design! {
                 width: Fit, height: 24
                 padding: {left: 8, right: 8}
                 text: "Clear"
-                draw_text: { color: #888 }
+                draw_text: { color: #6b7280 }
             }
         }
 
-        // Scrollable logs area
+        // Scrollable logs area - light theme
         logs_scroll = <ScrollYView> {
             width: Fill, height: Fill
 
@@ -163,7 +163,7 @@ live_design! {
                 width: Fill, height: Fit
                 text: "Select a node to view its logs"
                 draw_text: {
-                    color: #707070
+                    color: #6b7280
                     text_style: { font_size: 10.0 }
                     wrap: Word
                 }

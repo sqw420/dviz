@@ -110,7 +110,7 @@ live_design! {
         prop_input = <TextInput> {
             width: Fill, height: 24
             draw_bg: {
-                color: #333333
+                color: (INPUT_BG)
             }
             draw_text: {
                 color: (TEXT_PRIMARY)
@@ -189,14 +189,14 @@ live_design! {
             spacing: 4
             padding: {left: 80}
 
-            <Label> { text: "X", width: 12, draw_text: { color: #ff4444, text_style: <FONT_REGULAR>{ font_size: 10.0 } } }
-            x_input = <TextInput> { width: 50, height: 22, draw_bg: { color: #333333 }, draw_text: { color: (TEXT_PRIMARY), text_style: <FONT_REGULAR>{ font_size: 10.0 } } }
+            <Label> { text: "X", width: 12, draw_text: { color: (RED_500), text_style: <FONT_REGULAR>{ font_size: 10.0 } } }
+            x_input = <TextInput> { width: 50, height: 22, draw_bg: { color: (SLATE_100) }, draw_text: { color: (TEXT_PRIMARY), text_style: <FONT_REGULAR>{ font_size: 10.0 } } }
 
-            <Label> { text: "Y", width: 12, draw_text: { color: #44ff44, text_style: <FONT_REGULAR>{ font_size: 10.0 } } }
-            y_input = <TextInput> { width: 50, height: 22, draw_bg: { color: #333333 }, draw_text: { color: (TEXT_PRIMARY), text_style: <FONT_REGULAR>{ font_size: 10.0 } } }
+            <Label> { text: "Y", width: 12, draw_text: { color: (GREEN_500), text_style: <FONT_REGULAR>{ font_size: 10.0 } } }
+            y_input = <TextInput> { width: 50, height: 22, draw_bg: { color: (SLATE_100) }, draw_text: { color: (TEXT_PRIMARY), text_style: <FONT_REGULAR>{ font_size: 10.0 } } }
 
-            <Label> { text: "Z", width: 12, draw_text: { color: #4444ff, text_style: <FONT_REGULAR>{ font_size: 10.0 } } }
-            z_input = <TextInput> { width: 50, height: 22, draw_bg: { color: #333333 }, draw_text: { color: (TEXT_PRIMARY), text_style: <FONT_REGULAR>{ font_size: 10.0 } } }
+            <Label> { text: "Z", width: 12, draw_text: { color: (BLUE_500), text_style: <FONT_REGULAR>{ font_size: 10.0 } } }
+            z_input = <TextInput> { width: 50, height: 22, draw_bg: { color: (SLATE_100) }, draw_text: { color: (TEXT_PRIMARY), text_style: <FONT_REGULAR>{ font_size: 10.0 } } }
         }
     }
 
@@ -320,14 +320,14 @@ live_design! {
             }
         }
 
-        // Status section at bottom
+        // Status section at bottom - light theme
         status_section = <View> {
             width: Fill, height: Fit
             flow: Down
             padding: 12
             spacing: 4
             show_bg: true
-            draw_bg: { color: #1e1e1e }
+            draw_bg: { color: (DARK_BG) }
 
             status_label = <Label> {
                 text: "Status: OK"

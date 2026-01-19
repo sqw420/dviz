@@ -1190,6 +1190,103 @@ Suggest improvements."
 
 ---
 
+## Phase 11: UI Polish & Universal Protocol [IN PROGRESS v0.3.13+]
+
+### Task 11.1: Light Theme UI [COMPLETED]
+**Duration**: 2 hours
+**Status**: Implemented in mviz-shell/src/app.rs
+
+Modern tinted light theme replacing dark theme:
+
+```rust
+// Light Theme Colors - Modern tinted light theme with subtle blue accents
+LIGHT_BG = #f0f4f8          // Main background (cool gray with blue tint)
+PANEL_BG = #f8fafc          // Card/panel background (very light slate)
+TOOLBAR_BG = #e8f0f7        // Toolbar background (light blue-gray)
+TEXT_PRIMARY = #1e293b      // Main text (slate-800)
+TEXT_SECONDARY = #475569    // Secondary text (slate-600)
+TEXT_MUTED = #94a3b8        // Muted text (slate-400)
+DIVIDER = #cbd5e1           // Divider lines (slate-300)
+ACCENT_BLUE = #3b82f6       // Primary action color
+ACCENT_TEAL = #0d9488       // Secondary accent (teal-600)
+```
+
+- Window title: "MViz - Robotics Visualizer"
+- Window size: 1400x850
+- App icon: viz.svg in toolbar
+- Clear pass color matches LIGHT_BG
+
+### Task 11.2: Zenoh Universal Protocol [COMPLETED]
+**Duration**: 4 hours
+**Status**: Implemented in mviz-core/src/zenoh_protocol.rs
+
+Binary and JSON message formats for efficient visualization data transfer:
+
+**Binary Formats:**
+- `POINTS_XYZ_F32` - Packed f32 triplets for point clouds
+- Efficient parsing via `parse_points_xyz_f32()`
+
+**JSON Message Types:**
+```rust
+Points3DData { positions, radius, color }
+Boxes3DData { centers, sizes, half_sizes, quaternions, color }
+Arrows3DData { origins, vectors, color }
+LineStrips3DData { strips, color }
+Transform3DData { translation, rotation, matrix4x4 }
+ScalarData { value, label }
+```
+
+**Protocol Message Structure:**
+```rust
+VisMessage {
+    msg_type: String,     // "points3d", "boxes3d", etc.
+    format: Option<String>, // For binary: "points_xyz_f32"
+    count: Option<usize>,   // Number of elements
+    data: Value,            // JSON payload
+}
+
+VisData {
+    topic: String,
+    msg_type: String,
+    entity_path: String,
+    timestamp: f64,
+    message: VisMessage,
+    binary: Option<Vec<u8>>,
+}
+```
+
+### Task 11.3: Multi-Source Data Integration [COMPLETED]
+**Duration**: 3 hours
+**Status**: Implemented in mviz-shell/src/
+
+**Data Source Modes:**
+```rust
+pub enum DataSource {
+    Simulator,  // Built-in sensor simulator
+    Dora,       // Dora dataflow (legacy)
+    Zenoh,      // Zenoh LAN communication (universal)
+}
+```
+
+**mviz-shell/src/dora_receiver.rs:**
+- `DoraReceiver` - Background thread for Dora messages
+- `DoraMessage` enum: Connected, Disconnected, Status, Data
+- `DoraData` struct: pose, imu, waypoints, target, frame_count
+
+**mviz-shell/src/zenoh_receiver.rs:**
+- `ZenohReceiver` - Background thread with auto-discovery
+- Subscribes to `mviz/**` topic pattern
+- Parses JSON and binary message formats
+- `ZenohMessage` enum: Connected, Disconnected, Status, Data, Log, NodeDiscovered, NodeDef, GraphUpdate
+
+**App Integration:**
+- `toggle_zenoh_connection()` - Connect/disconnect Zenoh
+- `process_zenoh_messages()` - Handle all message types
+- `log_vis_data_to_rerun()` - Route messages to Rerun by type
+- Real-time node discovery updates LogPanel dropdown
+
+---
+
 ## Phase 8: Dataflow Graph Visualization [COMPLETED v0.3.1-v0.3.2]
 
 ### Task 8.1: Graph State Tracking in Bridge [COMPLETED]
@@ -1564,5 +1661,22 @@ Task 0.1 (Setup)
 │       ├── imu.rs (ImuProcessor, ImuData)          │
 │       ├── gps.rs (GpsProcessor, NMEA, TimeRef)    │
 │       └── All topics visualized in Rerun          │
+└───────────────────────────────────────────────────┘
+                    │
+                    ▼
+┌───────────────────────────────────────────────────┐
+│             Phase 11 [IN PROGRESS]                 │
+│                                                    │
+│  Task 11.1 (Light Theme UI)                       │
+│       └── Modern tinted light theme (slate/blue)  │
+│                                                    │
+│  Task 11.2 (Zenoh Universal Protocol)             │
+│       ├── Binary point cloud format (XYZ_F32)     │
+│       ├── Points3D, Boxes3D, Arrows3D, LineStrips3D│
+│       └── Transform3D, Scalar message types       │
+│                                                    │
+│  Task 11.3 (Dora + Zenoh Integration)             │
+│       ├── DoraReceiver for legacy support         │
+│       └── ZenohReceiver universal receiver        │
 └───────────────────────────────────────────────────┘
 ```

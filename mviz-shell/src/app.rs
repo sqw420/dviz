@@ -50,17 +50,30 @@ live_design! {
     // App icon
     MVIZ_ICON = dep("crate://self/resources/icons/viz.svg")
 
+    // Light Theme Colors - Modern tinted light theme with subtle blue accents
+    LIGHT_BG = #f0f4f8          // Main background (cool gray with blue tint)
+    PANEL_BG = #f8fafc          // Card/panel background (very light slate)
+    TOOLBAR_BG = #e8f0f7        // Toolbar background (light blue-gray)
+    TEXT_PRIMARY = #1e293b      // Main text (slate-800)
+    TEXT_SECONDARY = #475569    // Secondary text (slate-600)
+    TEXT_MUTED = #94a3b8        // Muted text (slate-400)
+    DIVIDER = #cbd5e1           // Divider lines (slate-300)
+    BORDER = #94a3b8            // Border color (slate-400)
+    ACCENT_BLUE = #3b82f6       // Primary action color
+    ACCENT_TEAL = #0d9488       // Secondary accent (teal-600)
+    PANEL_HEADER_BG = #e2e8f0   // Panel header background (slate-200)
+
     App = {{App}} {
         ui: <Root> {
             main_window = <Window> {
                 window: { title: "MViz - Robotics Visualizer", inner_size: vec2(1400, 850) }
-                pass: { clear_color: #1a1a1a }
+                pass: { clear_color: (LIGHT_BG) }
 
                 body = <View> {
                     width: Fill, height: Fill
                     flow: Down
                     show_bg: true
-                    draw_bg: { color: #1a1a1a }
+                    draw_bg: { color: (LIGHT_BG) }
 
                     // ========================================================
                     // TOOLBAR
@@ -72,7 +85,7 @@ live_design! {
                         padding: {left: 12, right: 12, top: 4, bottom: 4}
                         align: {y: 0.5}
                         show_bg: true
-                        draw_bg: { color: #252525 }
+                        draw_bg: { color: (TOOLBAR_BG) }
 
                         // App icon and title
                         <Icon> {
@@ -86,7 +99,7 @@ live_design! {
                         <Label> {
                             text: "MViz"
                             draw_text: {
-                                color: #ffffff
+                                color: (TEXT_PRIMARY)
                                 text_style: { font_size: 16.0 }
                             }
                         }
@@ -96,12 +109,12 @@ live_design! {
                         // File menu
                         file_btn = <Button> {
                             text: "File"
-                            draw_text: { color: #fff }
+                            draw_text: { color: (TEXT_PRIMARY) }
                         }
 
                         view_btn = <Button> {
                             text: "View"
-                            draw_text: { color: #fff }
+                            draw_text: { color: (TEXT_PRIMARY) }
                         }
 
                         <View> { width: Fill, height: 1 }
@@ -109,7 +122,7 @@ live_design! {
                         // Frame selector
                         <Label> {
                             text: "Fixed Frame:"
-                            draw_text: { color: #888, text_style: { font_size: 11.0 } }
+                            draw_text: { color: (TEXT_SECONDARY), text_style: { font_size: 11.0 } }
                         }
 
                         frame_dropdown = <DropDown> {
@@ -121,12 +134,12 @@ live_design! {
                         // Playback controls
                         play_btn = <Button> {
                             text: "Play"
-                            draw_text: { color: #fff }
+                            draw_text: { color: (TEXT_PRIMARY) }
                         }
 
                         time_label = <Label> {
                             text: "0.00s"
-                            draw_text: { color: #aaa, text_style: { font_size: 11.0 } }
+                            draw_text: { color: (TEXT_SECONDARY), text_style: { font_size: 11.0 } }
                         }
 
                         <View> { width: 20, height: 1 }
@@ -134,20 +147,15 @@ live_design! {
                         // Rerun launch (standalone mode only)
                         launch_btn = <Button> {
                             text: "Spawn Rerun"
-                            draw_text: { color: #fff }
+                            draw_text: { color: (TEXT_PRIMARY) }
                         }
 
                         <View> { width: 10, height: 1 }
 
-                        // Zenoh connection for LAN data
-                        zenoh_btn = <Button> {
-                            text: "Connect Zenoh"
-                            draw_text: { color: #fbbf24 }
-                        }
-
+                        // Zenoh status (auto-connects on startup)
                         zenoh_status = <Label> {
-                            text: ""
-                            draw_text: { color: #22c55e, text_style: { font_size: 10.0 } }
+                            text: "Zenoh: Connecting..."
+                            draw_text: { color: #d97706, text_style: { font_size: 10.0 } }
                         }
 
                         <View> { width: 10, height: 1 }
@@ -155,14 +163,21 @@ live_design! {
                         // Test buttons for Phase 4
                         test_laser_btn = <Button> {
                             text: "Test Laser"
-                            draw_text: { color: #4ade80 }
+                            draw_text: { color: #16a34a }
                         }
 
                         test_robot_btn = <Button> {
                             text: "Test Robot"
-                            draw_text: { color: #60a5fa }
+                            draw_text: { color: #2564fb }
                         }
 
+                    }
+
+                    // Toolbar bottom border
+                    <View> {
+                        width: Fill, height: 1
+                        show_bg: true
+                        draw_bg: { color: (DIVIDER) }
                     }
 
                     // ========================================================
@@ -181,7 +196,7 @@ live_design! {
                             spacing: 8
                             padding: 8
                             show_bg: true
-                            draw_bg: { color: #1e1e1e }
+                            draw_bg: { color: (PANEL_BG) }
 
                             // Displays list
                             displays_panel = <DisplaysPanel> {
@@ -196,7 +211,7 @@ live_design! {
                             // Status
                             status_label = <Label> {
                                 text: "Status: Ready"
-                                draw_text: { color: #606060, text_style: { font_size: 10.0 } }
+                                draw_text: { color: (TEXT_SECONDARY), text_style: { font_size: 10.0 } }
                             }
                         }
 
@@ -204,7 +219,7 @@ live_design! {
                         <View> {
                             width: 1, height: Fill
                             show_bg: true
-                            draw_bg: { color: #333 }
+                            draw_bg: { color: (DIVIDER) }
                         }
 
                         // CENTER - Node Detail Panel (fills remaining)
@@ -212,7 +227,7 @@ live_design! {
                             width: Fill, height: Fill
                             padding: 8
                             show_bg: true
-                            draw_bg: { color: #1a1a1a }
+                            draw_bg: { color: (LIGHT_BG) }
 
                             node_detail_panel = <NodeDetailPanel> {
                                 width: Fill, height: Fill
@@ -223,7 +238,7 @@ live_design! {
                         <View> {
                             width: 1, height: Fill
                             show_bg: true
-                            draw_bg: { color: #333 }
+                            draw_bg: { color: (DIVIDER) }
                         }
 
                         // RIGHT PANEL - Properties + System Log (fixed width)
@@ -233,7 +248,7 @@ live_design! {
                             spacing: 8
                             padding: 8
                             show_bg: true
-                            draw_bg: { color: #1e1e1e }
+                            draw_bg: { color: (PANEL_BG) }
 
                             properties_panel = <PropertiesPanel> {
                                 width: Fill, height: 200
@@ -336,6 +351,9 @@ impl MatchEvent for App {
         // Request first frame
         cx.start_interval(0.02); // 50 Hz update rate
         debug_log("Timer started at 50Hz");
+
+        // Auto-connect Zenoh for LAN data reception
+        self.start_zenoh_connection(cx);
     }
 
     fn handle_actions(&mut self, cx: &mut Cx, actions: &Actions) {
@@ -381,11 +399,6 @@ impl MatchEvent for App {
         // Test Robot button
         if self.ui.button(id!(test_robot_btn)).clicked(actions) {
             self.test_robot_model(cx);
-        }
-
-        // Zenoh connection button
-        if self.ui.button(id!(zenoh_btn)).clicked(actions) {
-            self.toggle_zenoh_connection(cx);
         }
 
         // Handle DisplaysPanel actions
@@ -514,8 +527,26 @@ impl App {
     fn launch_rerun(&mut self, cx: &mut Cx) {
         debug_log("Launching Rerun viewer via CLI...");
 
-        // First spawn a native Rerun viewer using the CLI
+        // Reset Rerun viewer memory to clear fullscreen/maximized state
+        // This uses the official 'rerun reset' command which clears window state
+        let reset_result = std::process::Command::new("rerun")
+            .arg("reset")
+            .output();
+        match reset_result {
+            Ok(output) => {
+                if output.status.success() {
+                    debug_log("Reset Rerun viewer state successfully");
+                } else {
+                    debug_log(&format!("rerun reset warning: {}", String::from_utf8_lossy(&output.stderr)));
+                }
+            }
+            Err(e) => debug_log(&format!("Failed to run rerun reset: {}", e)),
+        }
+
+        // Spawn Rerun viewer with window size argument
         let spawn_result = std::process::Command::new("rerun")
+            .arg("--window-size")
+            .arg("1400x850")
             .spawn();
 
         match spawn_result {
@@ -523,6 +554,51 @@ impl App {
                 debug_log("Rerun CLI started, waiting for server...");
                 // Give the server time to start
                 std::thread::sleep(std::time::Duration::from_millis(1500));
+
+                // Position Rerun window to the right of Makepad on macOS
+                #[cfg(target_os = "macos")]
+                {
+                    // Wait a bit more for window to be ready
+                    std::thread::sleep(std::time::Duration::from_millis(800));
+                    // Use AppleScript to resize and position both windows side by side
+                    // MViz (Makepad) at left (0, 50), Rerun at right (1420, 50)
+                    // Both windows sized to 1400x850
+                    let script = r#"
+                        tell application "System Events"
+                            -- Position MViz window at left
+                            repeat with proc in (every process whose name contains "mviz")
+                                tell proc
+                                    if exists window 1 then
+                                        set position of window 1 to {0, 50}
+                                        set size of window 1 to {1400, 850}
+                                    end if
+                                end tell
+                            end repeat
+                            -- Position and resize Rerun window to the right
+                            repeat with proc in (every process whose name contains "rerun" or name contains "Rerun")
+                                tell proc
+                                    if exists window 1 then
+                                        set position of window 1 to {1420, 50}
+                                        set size of window 1 to {1400, 850}
+                                    end if
+                                end tell
+                            end repeat
+                        end tell
+                    "#;
+                    let result = std::process::Command::new("osascript")
+                        .arg("-e")
+                        .arg(script)
+                        .output();
+                    match result {
+                        Ok(output) => {
+                            if !output.stderr.is_empty() {
+                                debug_log(&format!("AppleScript stderr: {}", String::from_utf8_lossy(&output.stderr)));
+                            }
+                            debug_log("Positioned windows via AppleScript");
+                        }
+                        Err(e) => debug_log(&format!("AppleScript error: {}", e)),
+                    }
+                }
 
                 // Now connect to it
                 let config = RerunConfig::new("mviz_sensors");
@@ -1385,31 +1461,21 @@ impl App {
     // ZENOH INTEGRATION (LAN Communication)
     // ========================================================================
 
-    /// Toggle Zenoh connection for LAN data reception
-    fn toggle_zenoh_connection(&mut self, cx: &mut Cx) {
+    /// Start Zenoh connection for LAN data reception (called on startup)
+    fn start_zenoh_connection(&mut self, cx: &mut Cx) {
+        // Don't start if already connected
         if self.zenoh_receiver.is_some() {
-            // Disconnect
-            debug_log("Disconnecting from Zenoh...");
-            if let Some(receiver) = self.zenoh_receiver.take() {
-                receiver.stop();
-            }
-            self.zenoh_connected = false;
-            self.data_source = DataSource::Simulator;
-            self.ui.button(id!(zenoh_btn)).set_text(cx, "Connect Zenoh");
-            self.ui.label(id!(zenoh_status)).set_text(cx, "");
-            self.ui.label(id!(status_label)).set_text(cx, "Status: Zenoh Disconnected");
-        } else {
-            // Connect
-            debug_log("Connecting to Zenoh (auto-discovery)...");
-            self.ui.label(id!(status_label)).set_text(cx, "Status: Connecting to Zenoh...");
-            self.ui.label(id!(zenoh_status)).set_text(cx, "Connecting...");
-
-            // Start Zenoh receiver with auto-discovery (no explicit address)
-            let receiver = ZenohReceiver::start(None, Some("mviz".to_string()));
-            self.zenoh_receiver = Some(receiver);
-            self.data_source = DataSource::Zenoh;
-            self.ui.button(id!(zenoh_btn)).set_text(cx, "Disconnect Zenoh");
+            debug_log("Zenoh already running, skipping auto-connect");
+            return;
         }
+
+        debug_log("Auto-connecting to Zenoh (LAN discovery)...");
+        self.ui.label(id!(zenoh_status)).set_text(cx, "Zenoh: Connecting...");
+
+        // Start Zenoh receiver with auto-discovery (no explicit address)
+        let receiver = ZenohReceiver::start(None, Some("mviz".to_string()));
+        self.zenoh_receiver = Some(receiver);
+        self.data_source = DataSource::Zenoh;
         self.ui.redraw(cx);
     }
 
@@ -1423,18 +1489,17 @@ impl App {
                 ZenohMessage::Connected => {
                     debug_log("Zenoh connected!");
                     self.zenoh_connected = true;
-                    self.ui.button(id!(zenoh_btn)).set_text(cx, "Disconnect Zenoh");
-                    self.ui.label(id!(zenoh_status)).set_text(cx, "Connected");
-                    self.ui.label(id!(status_label)).set_text(cx, "Status: Zenoh Connected - Universal Receiver");
+                    self.ui.label(id!(zenoh_status)).set_text(cx, "Zenoh: Connected");
+                    self.ui.label(id!(status_label)).set_text(cx, "Status: Zenoh Connected - Ready for data");
                 }
                 ZenohMessage::Disconnected(reason) => {
                     debug_log(&format!("Zenoh disconnected: {}", reason));
                     self.zenoh_connected = false;
-                    self.ui.label(id!(zenoh_status)).set_text(cx, "Disconnected");
+                    self.ui.label(id!(zenoh_status)).set_text(cx, "Zenoh: Disconnected");
                     self.ui.label(id!(status_label)).set_text(cx, &format!("Status: {}", reason));
                 }
                 ZenohMessage::Status(status) => {
-                    self.ui.label(id!(zenoh_status)).set_text(cx, &status);
+                    self.ui.label(id!(zenoh_status)).set_text(cx, &format!("Zenoh: {}", status));
                 }
                 ZenohMessage::Data(vis_data) => {
                     self.zenoh_message_count += 1;

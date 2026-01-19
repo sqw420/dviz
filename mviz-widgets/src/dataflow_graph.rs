@@ -27,17 +27,17 @@ live_design! {
                 4.0
             );
 
-            // Fill color based on active state
+            // Fill color based on active state - light theme
             let fill_color = mix(
-                vec4(0.2, 0.25, 0.3, 1.0),   // Idle: dark blue-gray
-                vec4(0.15, 0.45, 0.35, 1.0), // Active: green tint
+                vec4(0.96, 0.98, 0.99, 1.0),  // Idle: light gray (#f5f7fc)
+                vec4(0.85, 0.97, 0.92, 1.0),  // Active: light green tint
                 self.is_active
             );
 
             // Border color based on selection
             let border_color = mix(
-                vec4(0.35, 0.4, 0.45, 1.0),  // Normal border
-                vec4(0.4, 0.7, 1.0, 1.0),    // Selected: bright blue
+                vec4(0.80, 0.83, 0.86, 1.0),  // Normal border (#ccd4dc)
+                vec4(0.23, 0.51, 0.96, 1.0),  // Selected: bright blue (#3b82f6)
                 self.is_selected
             );
 
@@ -53,10 +53,10 @@ live_design! {
         fn pixel(self) -> vec4 {
             let sdf = Sdf2d::viewport(self.pos * self.rect_size);
 
-            // Simple horizontal line
+            // Simple horizontal line - light theme
             let mid_y = self.rect_size.y * 0.5;
             sdf.rect(0.0, mid_y - 0.5, self.rect_size.x, 1.0);
-            sdf.fill(vec4(0.4, 0.5, 0.55, 0.8));
+            sdf.fill(vec4(0.65, 0.70, 0.75, 0.8));  // Light gray edge
 
             return sdf.result;
         }
@@ -110,15 +110,15 @@ live_design! {
             width: Fill, height: Fill
             show_bg: true
             draw_bg: {
-                // Grid background
+                // Grid background - modern tinted theme
                 fn pixel(self) -> vec4 {
                     let grid_size = 20.0;
                     let pos = self.pos * self.rect_size;
                     let grid_x = mod(pos.x, grid_size);
                     let grid_y = mod(pos.y, grid_size);
 
-                    let base_color = vec4(0.12, 0.12, 0.12, 1.0);
-                    let grid_color = vec4(0.16, 0.16, 0.16, 1.0);
+                    let base_color = vec4(0.95, 0.97, 0.99, 1.0);   // Tinted slate (#f2f6fc)
+                    let grid_color = vec4(0.88, 0.91, 0.95, 1.0);   // Subtle grid (#e0e8f2)
 
                     if grid_x < 1.0 || grid_y < 1.0 {
                         return grid_color;
