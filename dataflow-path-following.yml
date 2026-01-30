@@ -1,18 +1,18 @@
-# MViz Vehicle Path Following Dataflow with Zenoh
+# DViz Vehicle Path Following Dataflow with Zenoh
 #
 # This dataflow runs the vehicle-path-following simulation headlessly and
 # publishes data via Zenoh for remote visualization on PC.
 #
 # Architecture:
 #   [Robot - Headless]                 [PC - Display]
-#   vehicle-path-following nodes       mviz-shell + Rerun
-#   mviz-bridge (Zenoh pub)  ------->  Zenoh subscriber
+#   vehicle-path-following nodes       dviz-shell + Rerun
+#   dviz-bridge (Zenoh pub)  ------->  Zenoh subscriber
 #
 # Usage:
-#   1. Build: cargo build --release -p mviz-rerun-bridge
+#   1. Build: cargo build --release -p dviz-rerun-bridge
 #   2. Start Dora: dora up
 #   3. Run dataflow: dora start dataflow-path-following.yml --name pathfollow
-#   4. In another terminal: cargo run -p mviz-shell
+#   4. In another terminal: cargo run -p dviz-shell
 #   5. Click "Spawn Rerun" then "Connect Zenoh"
 #
 # Requirements:
@@ -55,10 +55,10 @@ nodes:
       outputs:
         - imu_msg
 
-  # MViz Zenoh Bridge - Publish simulation data via Zenoh
-  - id: mviz_bridge
-    build: cargo build --release -p mviz-rerun-bridge
-    path: target/release/mviz-dora-bridge
+  # DViz Zenoh Bridge - Publish simulation data via Zenoh
+  - id: dviz_bridge
+    build: cargo build --release -p dviz-rerun-bridge
+    path: target/release/dviz-dora-bridge
     inputs:
       sim_pose: bicycle_model/sim_pose
       sim_state: bicycle_model/sim_state
@@ -66,5 +66,5 @@ nodes:
       waypoints: simple_planner/waypoints
       imu_msg: imu_synthesizer/imu_msg
     env:
-      ZENOH_TOPIC_PREFIX: mviz
+      ZENOH_TOPIC_PREFIX: dviz
       RUST_LOG: info

@@ -1,18 +1,18 @@
-# MViz ROS2 Bridge Dataflow
+# DViz ROS2 Bridge Dataflow
 #
-# This dataflow bridges ROS2 topics to MViz visualization via Zenoh.
-# Uses dora-ros2-bridge to subscribe to ROS2 topics and forward to mviz-bridge.
+# This dataflow bridges ROS2 topics to DViz visualization via Zenoh.
+# Uses dora-ros2-bridge to subscribe to ROS2 topics and forward to dviz-bridge.
 #
 # Architecture:
 #   [ROS2 System]                    [Dora Dataflow]              [PC - Display]
-#   ROS2 nodes  --> ros2_bridge --> mviz_bridge --> Zenoh --> mviz-shell + Rerun
+#   ROS2 nodes  --> ros2_bridge --> dviz_bridge --> Zenoh --> dviz-shell + Rerun
 #
 # Usage:
 #   1. Source ROS2: source /opt/ros/humble/setup.bash
-#   2. Build mviz: cargo build --release -p mviz-rerun-bridge
+#   2. Build dviz: cargo build --release -p dviz-rerun-bridge
 #   3. Start Dora: dora up
 #   4. Run dataflow: dora start dataflow-ros2.yml --name ros2viz
-#   5. In another terminal: cargo run -p mviz-shell
+#   5. In another terminal: cargo run -p dviz-shell
 #   6. Click "Spawn Rerun" then "Connect Zenoh"
 #
 # Requirements:
@@ -46,10 +46,10 @@ nodes:
         - markers         # visualization_msgs/MarkerArray -> Float32Array (varies)
         - image           # sensor_msgs/Image -> will need special handling
 
-  # MViz Zenoh Bridge - Publishes to Zenoh for remote visualization
-  - id: mviz_bridge
-    build: cargo build --release -p mviz-rerun-bridge
-    path: target/release/mviz-dora-bridge
+  # DViz Zenoh Bridge - Publishes to Zenoh for remote visualization
+  - id: dviz_bridge
+    build: cargo build --release -p dviz-rerun-bridge
+    path: target/release/dviz-dora-bridge
     inputs:
       pointcloud: ros2_bridge/pointcloud
       pose: ros2_bridge/pose
@@ -57,6 +57,6 @@ nodes:
       waypoints: ros2_bridge/waypoints
       imu_msg: ros2_bridge/imu_msg
     env:
-      ZENOH_TOPIC_PREFIX: mviz
+      ZENOH_TOPIC_PREFIX: dviz
       DATAFLOW_PATH: dataflow-ros2.yml
       RUST_LOG: info

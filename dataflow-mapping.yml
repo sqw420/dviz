@@ -1,25 +1,25 @@
-# MViz Vehicle Mapping Dataflow with Zenoh
+# DViz Vehicle Mapping Dataflow with Zenoh
 #
 # This dataflow runs the vehicle-mapping pipeline headlessly and
 # publishes data via Zenoh for remote visualization on PC.
 #
 # Architecture:
 #   [Robot - Headless]                 [PC - Display]
-#   vehicle-mapping nodes              mviz-shell + Rerun
-#   mviz-bridge (Zenoh pub)  ------->  Zenoh subscriber
+#   vehicle-mapping nodes              dviz-shell + Rerun
+#   dviz-bridge (Zenoh pub)  ------->  Zenoh subscriber
 #
 # Usage (Same Machine Testing):
-#   1. Build: cargo build --release -p mviz-rerun-bridge
+#   1. Build: cargo build --release -p dviz-rerun-bridge
 #   2. Start Dora: dora up
 #   3. Run dataflow: dora start dataflow-mapping.yml --name mapping
-#   4. In another terminal: cargo run -p mviz-shell
+#   4. In another terminal: cargo run -p dviz-shell
 #   5. Click "Spawn Rerun" then "Connect Zenoh"
 #
 # Usage (Robot + PC on LAN):
 #   Robot side:
 #     dora start dataflow-mapping.yml --name mapping
 #   PC side:
-#     cargo run -p mviz-shell
+#     cargo run -p dviz-shell
 #     Click "Spawn Rerun" then "Connect Zenoh"
 #
 # Requirements:
@@ -79,18 +79,18 @@ nodes:
         - waypoints
         - trajectory
 
-  # MViz Zenoh Bridge - Publish mapping data via Zenoh
+  # DViz Zenoh Bridge - Publish mapping data via Zenoh
   # Receives point clouds, poses, stats and publishes for remote visualization
-  - id: mviz_bridge
-    build: cargo build --release -p mviz-rerun-bridge
-    path: target/release/mviz-dora-bridge
+  - id: dviz_bridge
+    build: cargo build --release -p dviz-rerun-bridge
+    path: target/release/dviz-dora-bridge
     inputs:
       pointcloud: pcd_source/pointcloud
       # ICP outputs 4x4 matrix or x,y,z,qx,qy,qz,qw - use odom_pose input for transform3d
       odom_pose: icp_odometry/pose
       trajectory: waypoint_extractor/trajectory
     env:
-      ZENOH_TOPIC_PREFIX: mviz
+      ZENOH_TOPIC_PREFIX: dviz
       # Optional: specify router address for remote connection
       # ZENOH_CONNECT: tcp/192.168.1.100:7447
       RUST_LOG: info

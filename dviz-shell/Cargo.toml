@@ -1,0 +1,33 @@
+[package]
+name = "dviz-shell"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+makepad-widgets = { workspace = true }
+dviz-widgets = { path = "../dviz-widgets" }
+dviz-rerun-bridge = { path = "../dviz-rerun-bridge" }
+dviz-displays = { path = "../dviz-displays" }
+dviz-core = { path = "../dviz-core" }
+dviz-rosbag = { path = "../dviz-rosbag" }
+rerun = { workspace = true }
+rfd = "0.15"  # Native file dialog
+log = { workspace = true }
+env_logger = { workspace = true }
+rand = { workspace = true }
+parking_lot = { workspace = true }
+dora-node-api = { workspace = true }
+crossbeam-channel = { workspace = true }
+eyre = { workspace = true }
+zenoh = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+
+[build-dependencies]
+cc = "1.0"
+
+[[bin]]
+name = "dviz"
+path = "src/main.rs"

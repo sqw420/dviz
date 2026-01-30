@@ -1,14 +1,14 @@
 [workspace]
 resolver = "2"
 members = [
-    "mviz-core",
-    "mviz-transform",
-    "mviz-displays",
-    "mviz-urdf",
-    "mviz-shell",
-    "mviz-widgets",
-    "mviz-rerun-bridge",
-    "mviz-rosbag",
+    "dviz-core",
+    "dviz-transform",
+    "dviz-displays",
+    "dviz-urdf",
+    "dviz-shell",
+    "dviz-widgets",
+    "dviz-rerun-bridge",
+    "dviz-rosbag",
 ]
 
 [workspace.package]

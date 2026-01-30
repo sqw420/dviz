@@ -1,21 +1,21 @@
-# MViz Robot Dataflow (Headless)
+# DViz Robot Dataflow (Headless)
 #
 # This dataflow runs on the robot side WITHOUT a GUI.
 # It publishes sensor data via Zenoh for remote visualization.
 #
 # Usage:
 #   Robot side (headless):
-#     1. Build: cargo build --release -p mviz-rerun-bridge
+#     1. Build: cargo build --release -p dviz-rerun-bridge
 #     2. Start Dora: dora up
 #     3. Run: dora start dataflow-robot.yml --name robot
 #
 #   PC side (with display):
-#     1. Start mviz-shell: cargo run -p mviz-shell
+#     1. Start dviz-shell: cargo run -p dviz-shell
 #     2. Click "Spawn Rerun" to open 3D viewer
 #     3. Click "Connect Zenoh" to receive robot data via LAN
 #
 # Communication:
-#   - Robot publishes to Zenoh topics: mviz/pose, mviz/state, mviz/imu, etc.
+#   - Robot publishes to Zenoh topics: dviz/pose, dviz/state, dviz/imu, etc.
 #   - PC subscribes via Zenoh auto-discovery (multicast scouting)
 #   - Both machines must be on the same LAN
 
@@ -53,11 +53,11 @@ nodes:
       outputs:
         - imu_msg
 
-  # MViz Zenoh Bridge - Publish sensor data via Zenoh (NO RERUN)
+  # DViz Zenoh Bridge - Publish sensor data via Zenoh (NO RERUN)
   # This node runs headless and only publishes data over the network
-  - id: mviz_zenoh_bridge
-    build: cargo build --release -p mviz-rerun-bridge
-    path: target/release/mviz-dora-bridge
+  - id: dviz_zenoh_bridge
+    build: cargo build --release -p dviz-rerun-bridge
+    path: target/release/dviz-dora-bridge
     inputs:
       sim_pose: bicycle_model/sim_pose
       sim_state: bicycle_model/sim_state
@@ -67,5 +67,5 @@ nodes:
     env:
       # Zenoh configuration (optional - uses auto-discovery by default)
       # ZENOH_CONNECT: tcp/192.168.1.100:7447
-      ZENOH_TOPIC_PREFIX: mviz
+      ZENOH_TOPIC_PREFIX: dviz
       RUST_LOG: info

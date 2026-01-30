@@ -1,4 +1,4 @@
-# MViz Development Update Log
+# DViz Development Update Log
 
 This file tracks implementation progress, test results, and check-in records.
 
@@ -12,10 +12,10 @@ This file tracks implementation progress, test results, and check-in records.
 ### Task 1.1: Transform Types
 - **Status:** Completed
 - **Files Created:**
-  - `mviz-core/src/types/transform.rs`
-  - `mviz-core/src/types/mod.rs`
-  - `mviz-core/src/lib.rs`
-  - `mviz-core/Cargo.toml`
+  - `dviz-core/src/types/transform.rs`
+  - `dviz-core/src/types/mod.rs`
+  - `dviz-core/src/lib.rs`
+  - `dviz-core/Cargo.toml`
 - **Types Implemented:**
   - `FrameId` - Coordinate frame identifier
   - `Timestamp` - Nanosecond precision timestamps
@@ -28,7 +28,7 @@ This file tracks implementation progress, test results, and check-in records.
 ### Task 1.2: Point Cloud Types
 - **Status:** Completed
 - **Files Created:**
-  - `mviz-core/src/types/point_cloud.rs`
+  - `dviz-core/src/types/point_cloud.rs`
 - **Types Implemented:**
   - `Color` - RGBA color with constants and HSV conversion
   - `Colormap` - 8 colormaps (Jet, Rainbow, Turbo, Viridis, Grayscale, Hot, Cool, Plasma)
@@ -42,7 +42,7 @@ This file tracks implementation progress, test results, and check-in records.
 ### Task 1.3: Marker Types
 - **Status:** Completed
 - **Files Created:**
-  - `mviz-core/src/types/marker.rs`
+  - `dviz-core/src/types/marker.rs`
 - **Types Implemented:**
   - `MarkerType` - Arrow, Cube, Sphere, Cylinder, LineStrip, LineList, CubeList, SphereList, Points, Text, MeshResource, TriangleList
   - `MarkerAction` - Add, Modify, Delete, DeleteAll
@@ -55,7 +55,7 @@ This file tracks implementation progress, test results, and check-in records.
 ### Task 1.4: Display Trait
 - **Status:** Completed
 - **Files Created:**
-  - `mviz-core/src/display.rs`
+  - `dviz-core/src/display.rs`
 - **Types Implemented:**
   - `DisplayError` - Error types for display operations
   - `DisplayStatus` - Disabled, Initializing, Ok, Warning, Error
@@ -75,7 +75,7 @@ This file tracks implementation progress, test results, and check-in records.
 ### Task 1.5: Configuration Schema
 - **Status:** Completed
 - **Files Created:**
-  - `mviz-core/src/config.rs`
+  - `dviz-core/src/config.rs`
 - **Types Implemented:**
   - `ConfigError` - Configuration error types
   - `WindowConfig` - Window size, position, fullscreen settings
@@ -97,7 +97,7 @@ This file tracks implementation progress, test results, and check-in records.
 **Total Tests:** 44 passing
 **Crate Structure:**
 ```
-mviz-core/
+dviz-core/
   Cargo.toml
   src/
     lib.rs
@@ -110,7 +110,7 @@ mviz-core/
       marker.rs
 ```
 
-**Workspace Updated:** Added mviz-core to workspace members in root Cargo.toml
+**Workspace Updated:** Added dviz-core to workspace members in root Cargo.toml
 
 **Warnings:** 6 warnings about unnecessary parentheses in point_cloud.rs colormap calculations (cosmetic, does not affect functionality)
 
@@ -124,9 +124,9 @@ mviz-core/
 ### Task 1.6: Frame Tree
 - **Status:** Completed
 - **Files Created:**
-  - `mviz-transform/Cargo.toml`
-  - `mviz-transform/src/lib.rs`
-  - `mviz-transform/src/frame_tree.rs`
+  - `dviz-transform/Cargo.toml`
+  - `dviz-transform/src/lib.rs`
+  - `dviz-transform/src/frame_tree.rs`
 - **Types Implemented:**
   - `FrameNode` - Node in frame tree with parent/children relationships
   - `FrameTree` - Coordinate frame hierarchy with path finding
@@ -141,7 +141,7 @@ mviz-core/
 ### Task 1.7: Transform Buffer
 - **Status:** Completed
 - **Files Created:**
-  - `mviz-transform/src/transform_buffer.rs`
+  - `dviz-transform/src/transform_buffer.rs`
 - **Types Implemented:**
   - `TransformKey` - (parent, child) frame pair key
   - `TransformHistory` - Time-indexed transforms with interpolation
@@ -166,10 +166,10 @@ mviz-core/
 ### Task 1.8-1.11: Core Adapters
 - **Status:** Completed
 - **Files Modified:**
-  - `mviz-rerun-bridge/Cargo.toml` (added mviz-core dependency)
-  - `mviz-rerun-bridge/src/lib.rs` (added core_adapters export)
+  - `dviz-rerun-bridge/Cargo.toml` (added dviz-core dependency)
+  - `dviz-rerun-bridge/src/lib.rs` (added core_adapters export)
 - **Files Created:**
-  - `mviz-rerun-bridge/src/core_adapters.rs`
+  - `dviz-rerun-bridge/src/core_adapters.rs`
 - **Types Implemented:**
   - `PointCloudCoreAdapter` - Log PointCloud to Rerun with color modes
   - `TransformCoreAdapter` - Log Transform to Rerun with frame axes visualization
@@ -196,14 +196,14 @@ mviz-core/
 **Total Workspace Tests:** 71 passing
 **New Crates:**
 ```
-mviz-transform/
+dviz-transform/
   Cargo.toml
   src/
     lib.rs
     frame_tree.rs
     transform_buffer.rs
 
-mviz-rerun-bridge/
+dviz-rerun-bridge/
   src/
     core_adapters.rs (new)
 ```
@@ -218,14 +218,14 @@ mviz-rerun-bridge/
 ### Task 2.1-2.6: Display Plugin System
 - **Status:** Completed
 - **Files Created:**
-  - `mviz-displays/Cargo.toml`
-  - `mviz-displays/src/lib.rs`
-  - `mviz-displays/src/base.rs`
-  - `mviz-displays/src/grid.rs`
-  - `mviz-displays/src/axes.rs`
-  - `mviz-displays/src/point_cloud.rs`
-  - `mviz-displays/src/marker.rs`
-  - `mviz-displays/src/tf.rs`
+  - `dviz-displays/Cargo.toml`
+  - `dviz-displays/src/lib.rs`
+  - `dviz-displays/src/base.rs`
+  - `dviz-displays/src/grid.rs`
+  - `dviz-displays/src/axes.rs`
+  - `dviz-displays/src/point_cloud.rs`
+  - `dviz-displays/src/marker.rs`
+  - `dviz-displays/src/tf.rs`
 
 ### Display Types Implemented:
 - **BaseDisplay** - Common display functionality with properties
@@ -241,7 +241,7 @@ mviz-rerun-bridge/
 - Marker lifetime management with automatic expiration
 - All displays tested with unit tests
 
-### Tests: 29 tests passing in mviz-displays
+### Tests: 29 tests passing in dviz-displays
 
 ---
 
@@ -253,12 +253,12 @@ mviz-rerun-bridge/
 ### Task 3.1-3.3: Enhanced UI Widgets
 - **Status:** Completed
 - **Files Created:**
-  - `mviz-widgets/src/displays_panel.rs`
-  - `mviz-widgets/src/properties_panel.rs`
-  - `mviz-widgets/src/toolbar.rs`
+  - `dviz-widgets/src/displays_panel.rs`
+  - `dviz-widgets/src/properties_panel.rs`
+  - `dviz-widgets/src/toolbar.rs`
 - **Files Modified:**
-  - `mviz-widgets/src/lib.rs`
-  - `mviz-shell/src/app.rs`
+  - `dviz-widgets/src/lib.rs`
+  - `dviz-shell/src/app.rs`
 
 ### New Widgets:
 - **DisplaysPanel** - List of visualization displays with:

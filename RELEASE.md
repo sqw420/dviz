@@ -1,4 +1,49 @@
-# MViz Release Notes
+# DViz Release Notes
+
+## v0.4.0 (2026-01-30)
+
+### Major: Repository Rename from mviz to dviz
+
+Complete repository rename from "mviz" to "dviz" across the entire codebase.
+
+#### Changes
+
+**Repository & Git:**
+- Renamed GitHub repository from `bobd988/mviz` to `bobd988/dviz`
+- Updated git remote URL
+
+**Crate Renames (8 crates):**
+- `mviz-core` → `dviz-core`
+- `mviz-transform` → `dviz-transform`
+- `mviz-displays` → `dviz-displays`
+- `mviz-urdf` → `dviz-urdf`
+- `mviz-shell` → `dviz-shell`
+- `mviz-widgets` → `dviz-widgets`
+- `mviz-rerun-bridge` → `dviz-rerun-bridge`
+- `mviz-rosbag` → `dviz-rosbag`
+
+**Binary Renames:**
+- `mviz` → `dviz`
+- `mviz-dora-bridge` → `dviz-dora-bridge`
+
+**Dataflow Configurations (5 files):**
+- Updated node IDs: `mviz_bridge` → `dviz_bridge`
+- Updated Zenoh topic prefix: `mviz` → `dviz`
+- Updated build paths and binary names
+
+**Documentation:**
+- Renamed `mviz_plan.md` → `dviz_plan.md`
+- Renamed `mviz_design.md` → `dviz_design.md`
+- Renamed `mviz_features.md` → `dviz_features.md`
+- Updated all internal references
+
+**Source Code:**
+- Updated all `use mviz_*` imports to `use dviz_*`
+- Updated debug log paths: `/tmp/mviz_debug.log` → `/tmp/dviz_debug.log`
+- Updated window titles and app names
+- Updated comments and documentation strings
+
+---
 
 ## v0.3.13 (2026-01-18)
 
@@ -8,7 +53,7 @@ Removed manual Zenoh connection button and merged mofa-studio theme system for b
 
 #### Zenoh Auto-Connect
 
-**mviz-shell/src/app.rs:**
+**dviz-shell/src/app.rs:**
 - Removed `zenoh_btn` button from toolbar UI
 - Added `start_zenoh_connection()` method for automatic startup connection
 - Zenoh now auto-connects on app launch via `handle_startup()`
@@ -17,7 +62,7 @@ Removed manual Zenoh connection button and merged mofa-studio theme system for b
 
 #### Theme System Enhancement
 
-**mviz-widgets/src/theme.rs:**
+**dviz-widgets/src/theme.rs:**
 - Merged comprehensive Tailwind CSS color palette from mofa-studio
 - Added full color scales: Slate, Gray, Blue, Indigo, Green, Red, Emerald, Yellow/Amber, Orange (50-900 shades)
 - Added dark theme semantic colors: `DARK_BG_DARK`, `PANEL_BG_DARK`, `TEXT_PRIMARY_DARK`, etc.
@@ -25,7 +70,7 @@ Removed manual Zenoh connection button and merged mofa-studio theme system for b
 - Enhanced `PrimaryButton` and `IconButton` with dark mode support
 - Added comprehensive documentation with usage examples
 
-**mviz-widgets/src/properties_panel.rs:**
+**dviz-widgets/src/properties_panel.rs:**
 - Replaced hardcoded hex colors with theme constants:
   - `#eef2f7` -> `(INPUT_BG)`
   - `#f1f5f9` -> `(SLATE_100)`
@@ -61,11 +106,11 @@ Extended ROS bag playback to visualize all sensor types with proper Rerun entity
 
 #### New Modules
 
-**mviz-rosbag/src/imu.rs:**
+**dviz-rosbag/src/imu.rs:**
 - `ImuData` - orientation quaternion, angular velocity, linear acceleration
 - `ImuProcessor` - Parses sensor_msgs/Imu from raw bytes
 
-**mviz-rosbag/src/gps.rs:**
+**dviz-rosbag/src/gps.rs:**
 - `NmeaSentence` - NMEA sentence with type extraction
 - `GpsPosition` - lat, lon, alt, fix_quality, satellites, hdop
 - `TimeReference` - GPS time reference with source and offset
@@ -113,8 +158,8 @@ world/
 
 #### Documentation
 
-- Updated mviz_plan.md with Task 10.3
-- Updated mviz_design.md with Section 9.7
+- Updated dviz_plan.md with Task 10.3
+- Updated dviz_design.md with Section 9.7
 
 ---
 
@@ -135,7 +180,7 @@ The bag player's `set_rerun_stream()` was only called in `open_rosbag()`, which 
 
 #### Fix
 
-Modified `launch_rerun()` in `mviz-shell/src/app.rs` to connect existing bag player when Rerun is spawned:
+Modified `launch_rerun()` in `dviz-shell/src/app.rs` to connect existing bag player when Rerun is spawned:
 
 ```rust
 // Connect existing bag player to Rerun if one is loaded
@@ -162,7 +207,7 @@ Both workflows now work:
 Added ROS1 bag file playback support with visualization pipeline:
 rosbag → PointCloud2 parsing → TF transforms → Rerun visualization
 
-#### New Crate: mviz-rosbag
+#### New Crate: dviz-rosbag
 
 **Core Player (player.rs):**
 - `RosBagPlayer::open()` - Open bag file and parse metadata
@@ -187,7 +232,7 @@ rosbag → PointCloud2 parsing → TF transforms → Rerun visualization
 - `TfBuffer::lookup_transform()` - Chain lookup through common ancestor
 - `TfBuffer::process_tf_message()` - Parse TF messages
 
-#### UI Integration (mviz-shell)
+#### UI Integration (dviz-shell)
 
 **File Dialog:**
 - File button opens native file dialog via `rfd` crate
@@ -212,17 +257,17 @@ Comprehensive update to reflect actual codebase state.
 
 #### Tasks Marked as COMPLETED
 
-**mviz_plan.md:**
-- Task 1.12: URDF Parser (mviz-urdf/src/parser.rs)
-- Task 1.13: Mesh Loader (mviz-urdf/src/mesh_loader.rs)
-- Task 3.1: Robot Model Display (mviz-displays/src/robot_model.rs)
-- Task 4.2: Displays Panel Widget (mviz-widgets/src/displays_panel.rs)
-- Task 4.3: Properties Panel Widget (mviz-widgets/src/properties_panel.rs)
-- Task 4.4: Toolbar Widget (mviz-widgets/src/toolbar.rs)
-- Task 4.8: Node Detail Panel Widget (mviz-widgets/src/node_detail_panel.rs)
+**dviz_plan.md:**
+- Task 1.12: URDF Parser (dviz-urdf/src/parser.rs)
+- Task 1.13: Mesh Loader (dviz-urdf/src/mesh_loader.rs)
+- Task 3.1: Robot Model Display (dviz-displays/src/robot_model.rs)
+- Task 4.2: Displays Panel Widget (dviz-widgets/src/displays_panel.rs)
+- Task 4.3: Properties Panel Widget (dviz-widgets/src/properties_panel.rs)
+- Task 4.4: Toolbar Widget (dviz-widgets/src/toolbar.rs)
+- Task 4.8: Node Detail Panel Widget (dviz-widgets/src/node_detail_panel.rs)
 - Updated dependency graph with checkmarks for completed tasks
 
-**mviz_design.md:**
+**dviz_design.md:**
 - Section 9.4: Node Detail Panel - marked as IMPLEMENTED
 - Section 10: URDF Integration - marked as IMPLEMENTED
 
@@ -239,15 +284,15 @@ Comprehensive update to reflect actual codebase state.
 
 ### Documentation: Updated Design and Plan
 
-Updated mviz_design.md and mviz_plan.md with implemented features from Phase 8-9.
+Updated dviz_design.md and dviz_plan.md with implemented features from Phase 8-9.
 
 #### Changes
 
-**mviz_design.md:**
+**dviz_design.md:**
 - Added Section 9.5: Dataflow Graph Widget (Phase 8)
 - Added Section 9.6: UI Layout Configuration (Phase 9)
 
-**mviz_plan.md:**
+**dviz_plan.md:**
 - Added Phase 8: Dataflow Graph Visualization (Tasks 8.1-8.4)
 - Added Phase 9: UI Layout Improvements (Tasks 9.1-9.3)
 - Updated dependency graph with new phases
@@ -262,7 +307,7 @@ Increased left and right panel widths for better visibility.
 
 #### Changes
 
-**mviz-shell/src/app.rs:**
+**dviz-shell/src/app.rs:**
 - Left panel: 280px → 340px
 - Right panel: 280px → 340px
 - More room to display dataflow graph, properties, and logs
@@ -277,12 +322,12 @@ Reverted to stable fixed-width layout (Splitter widget has rendering bugs). Kept
 
 #### Changes
 
-**mviz-shell/src/app.rs:**
+**dviz-shell/src/app.rs:**
 - Reverted to fixed-width three-column View layout
 - Left panel: 280px, Center: flexible, Right: 280px
 - Note: Makepad Splitter widget causes blank screen - not usable
 
-**mviz-widgets/src/dataflow_graph.rs:**
+**dviz-widgets/src/dataflow_graph.rs:**
 - Green emoji (🟢) for active nodes, white (⚪) for idle
 - Status text: `[RUN]` / `[---]`
 
@@ -310,7 +355,7 @@ Fixed blank screen issue caused by Makepad Splitter widget not rendering childre
 
 #### Changes
 
-**mviz-shell/src/app.rs:**
+**dviz-shell/src/app.rs:**
 - Reverted from nested Splitter layout to stable three-column View layout
 - Left panel: Fixed 280px width with DisplaysPanel and DataflowGraph
 - Center panel: Flexible width with NodeDetailPanel
@@ -338,7 +383,7 @@ Enhanced the DataflowGraphWidget with shader definitions for future graphical re
 
 #### Changes
 
-**mviz-widgets/src/dataflow_graph.rs:**
+**dviz-widgets/src/dataflow_graph.rs:**
 - Added `DrawNodeBox` shader with rounded rectangle, active/selected states
 - Added `DrawEdgeLine` shader for edge rendering
 - Enhanced ASCII-style visual display with box borders (`┌─┐└─┘`)
@@ -346,7 +391,7 @@ Enhanced the DataflowGraphWidget with shader definitions for future graphical re
 - Added `compute_layout()` for hierarchical node positioning
 - Added HashMap for node position tracking
 
-**mviz-rerun-bridge/src/main.rs:**
+**dviz-rerun-bridge/src/main.rs:**
 - Enhanced `GraphState` to initialize from node definitions (`init_from_definitions()`)
 - Added `input_source_map` for tracking input-to-source mappings
 - Improved edge parsing from YAML input format (`source_node/output_port`)
@@ -375,36 +420,36 @@ Added dynamic dataflow graph visualization directly in the Makepad UI. The graph
 
 #### Changes
 
-**mviz-core/src/zenoh_protocol.rs:**
+**dviz-core/src/zenoh_protocol.rs:**
 - Added `GraphNodeStatus` enum (Active, Idle, Error)
 - Added `GraphNode` struct (id, status, last_seen)
 - Added `GraphEdge` struct (from_node, from_port, to_node, to_port)
 - Added `GraphUpdate` struct (nodes, edges, timestamp)
 
-**mviz-rerun-bridge/src/main.rs:**
+**dviz-rerun-bridge/src/main.rs:**
 - Added `GraphState` struct for tracking discovered graph structure
 - Added `record_input()` method to infer edges from input patterns (e.g., `source_node/output_port`)
 - Added `to_graph_update()` method to generate graph update messages
 - Added `publish_graph_update()` function for Zenoh publishing
 - Graph updates published every 2 seconds
 
-**mviz-shell/src/zenoh_receiver.rs:**
+**dviz-shell/src/zenoh_receiver.rs:**
 - Added `ZenohMessage::GraphUpdate(GraphUpdate)` variant
 - Added handling for `graph_update` message type
 - Tracks all nodes from graph updates
 
-**mviz-widgets/src/dataflow_graph.rs (new file):**
+**dviz-widgets/src/dataflow_graph.rs (new file):**
 - Created `DataflowGraphWidget` for displaying the graph
 - `GraphDisplayNode` and `GraphDisplayEdge` structures
 - Text-based rendering approach (like LogPanel)
 - Click detection for node selection
 - `update_from_graph_update()` method for dynamic updates
 
-**mviz-widgets/src/lib.rs:**
+**dviz-widgets/src/lib.rs:**
 - Added `pub mod dataflow_graph`
 - Added exports for DataflowGraphWidget, DataflowGraphAction, DataflowGraphWidgetRef
 
-**mviz-shell/src/app.rs:**
+**dviz-shell/src/app.rs:**
 - Replaced IMU/Vehicle/Stats panels with DataflowGraphWidget in left panel
 - Added `ZenohMessage::GraphUpdate` handling in `process_zenoh_messages()`
 - Added `DataflowGraphAction::NodeClicked` handling in `handle_actions()`
@@ -414,7 +459,7 @@ Added dynamic dataflow graph visualization directly in the Makepad UI. The graph
 1. Bridge tracks input messages with format `source_node/output_port`
 2. Infers graph edges: source_node -> current_node (via output_port)
 3. Publishes `graph_update` messages via Zenoh every 2 seconds
-4. mviz-shell receives updates and displays in DataflowGraphWidget
+4. dviz-shell receives updates and displays in DataflowGraphWidget
 
 #### Graph Display Format
 
@@ -444,7 +489,7 @@ Added click-to-select functionality for the displays panel list items.
 
 #### Changes
 
-**mviz-widgets/src/displays_panel.rs:**
+**dviz-widgets/src/displays_panel.rs:**
 - Added click detection in `handle_event()` for `display_list_content` label
 - Calculates clicked item index based on Y position (line height ~18px for font_size 11.0)
 - Updates `selected_index` on click
@@ -485,15 +530,15 @@ Fixed three UI issues reported after v0.2.7:
 
 #### Files Changed
 
-**mviz-widgets/src/properties_panel.rs:**
+**dviz-widgets/src/properties_panel.rs:**
 - `set_display(cx, display_id, name, type)` - updates header labels
 - `clear_selection(cx)` - resets to "No Selection"
 - `PropertiesPanelRef` extension impl
 
-**mviz-widgets/src/lib.rs:**
+**dviz-widgets/src/lib.rs:**
 - Export PropertiesPanelRef, PropertiesPanelWidgetRefExt
 
-**mviz-shell/src/app.rs:**
+**dviz-shell/src/app.rs:**
 - Import PropertiesPanelWidgetRefExt
 - Initialize frame_dropdown in handle_startup
 - Add file_btn/view_btn click handlers
@@ -510,7 +555,7 @@ Implemented a full DisplaysPanel widget for managing visualization displays, ins
 
 #### Changes
 
-**mviz-widgets/src/displays_panel.rs:**
+**dviz-widgets/src/displays_panel.rs:**
 - Added `DisplayType` enum with 8 visualization types:
   - Grid, Axes, PointCloud, Markers, TF, LaserScan, Path, Pose
   - Each type has `icon_type()` for shader mapping, `name()` for display
@@ -526,11 +571,11 @@ Implemented a full DisplaysPanel widget for managing visualization displays, ins
   - AddDisplayClicked, DisplaySelected, DisplayToggled, DisplayDeleted
 - Added `DisplaysPanelDisplayOps` extension trait for ref operations
 
-**mviz-widgets/src/lib.rs:**
+**dviz-widgets/src/lib.rs:**
 - Exports: DisplayInfo, DisplayType, DisplayListItem, DisplaysPanel
 - Exports: DisplaysPanelAction, DisplaysPanelDisplayOps, DisplaysPanelWidgetRefExt
 
-**mviz-shell/src/app.rs:**
+**dviz-shell/src/app.rs:**
 - Integrated DisplaysPanelAction handling
 - Added `on_display_selected()` - updates PropertiesPanel with display info
 - Added `on_display_toggled()` - toggles Rerun entity visibility
@@ -561,7 +606,7 @@ Removed hardcoded path-following-specific node name mappings from the bridge. Th
 
 #### Changes
 
-**mviz-rerun-bridge/src/main.rs:**
+**dviz-rerun-bridge/src/main.rs:**
 - Removed hardcoded input-to-node mappings:
   - ~~`sim_pose` / `sim_state` → `bicycle_model`~~
   - ~~`steering_cmd` / `throttle_cmd` / `target_point` / `waypoints` → `simple_planner`~~
@@ -593,18 +638,18 @@ Added comprehensive debug logging and unit tests to trace and verify the I/O act
 
 #### Changes
 
-**mviz-core/src/zenoh_protocol.rs:**
+**dviz-core/src/zenoh_protocol.rs:**
 - Added 3 unit tests for LogData serialization:
   - `test_log_data_with_port_info` - verifies I/O activity logs parse correctly
   - `test_log_data_without_port_info` - verifies regular logs work without port fields
-  - `test_full_mviz_message_with_log` - tests full serialize/parse round-trip
+  - `test_full_dviz_message_with_log` - tests full serialize/parse round-trip
 
-**mviz-shell/src/zenoh_receiver.rs:**
+**dviz-shell/src/zenoh_receiver.rs:**
 - Added detailed debug logging for log message parsing:
   - Logs raw `msg.data` JSON for each log message
   - Logs parsed `LogData` fields: node_id, port, port_type, has_port_info
 
-**mviz-shell/src/app.rs:**
+**dviz-shell/src/app.rs:**
 - Added debug logging for I/O activity routing:
   - Logs when I/O activity is detected and routed to NodeDetailPanel
   - Logs metadata keys for regular logs (to diagnose missing port info)
@@ -612,12 +657,12 @@ Added comprehensive debug logging and unit tests to trace and verify the I/O act
 #### Debug Output Location
 
 Debug output written to:
-- Terminal: `[mviz]` prefixed lines
-- File: `/tmp/mviz_zenoh_debug.log`
+- Terminal: `[dviz]` prefixed lines
+- File: `/tmp/dviz_zenoh_debug.log`
 
 To check I/O activity flow:
 ```bash
-grep -E "Log msg.data|LogData parsed|I/O activity" /tmp/mviz_zenoh_debug.log
+grep -E "Log msg.data|LogData parsed|I/O activity" /tmp/dviz_zenoh_debug.log
 ```
 
 ---
@@ -630,29 +675,29 @@ Changed the NodeDetailPanel's INPUTS and OUTPUTS sections from showing static sc
 
 #### Changes
 
-**mviz-rerun-bridge/src/main.rs:**
+**dviz-rerun-bridge/src/main.rs:**
 - Added `publish_io_activity()` - publishes I/O activity logs with port information
 - Added `format_values_summary()` - formats float arrays as summary strings for display
 - Bridge now publishes I/O activity for:
   - Its own inputs (showing data received from upstream nodes)
   - Source node outputs (showing data the source node emitted)
 
-**mviz-core/src/zenoh_protocol.rs:**
+**dviz-core/src/zenoh_protocol.rs:**
 - Added `port: Option<String>` field to `LogData` - identifies which port the message relates to
 - Added `port_type: Option<String>` field to `LogData` - "input" or "output"
 
-**mviz-widgets/src/node_detail_panel.rs:**
+**dviz-widgets/src/node_detail_panel.rs:**
 - Added `IoActivityEntry` struct - timestamp, port_name, data_summary
 - Added `input_activity: VecDeque<IoActivityEntry>` to `NodeDisplayState`
 - Added `output_activity: VecDeque<IoActivityEntry>` to `NodeDisplayState`
 - Added `add_io_activity()` method - routes I/O activity to correct node and port
 - Updated `update_io_display()` - now shows live messages instead of definitions
 
-**mviz-shell/src/zenoh_receiver.rs:**
+**dviz-shell/src/zenoh_receiver.rs:**
 - Extended log entry parsing to extract `port` and `port_type` from JSON data
 - Port info now stored in `LogEntry.metadata` for routing in app.rs
 
-**mviz-shell/src/app.rs:**
+**dviz-shell/src/app.rs:**
 - Log handler now checks for port info in metadata
 - Routes I/O activity logs to `add_io_activity()` instead of regular log panels
 - Regular logs (without port info) still go to LogPanel
@@ -684,9 +729,9 @@ The bridge couldn't find the dataflow YAML file because Dora runs nodes from a d
 
 **dataflow-path-following.yml:**
 ```yaml
-- id: mviz_bridge
+- id: dviz_bridge
   env:
-    DATAFLOW_PATH: /Users/nupylot/Public/mviz/dataflow-path-following.yml
+    DATAFLOW_PATH: /Users/nupylot/Public/dviz/dataflow-path-following.yml
 ```
 
 ---
@@ -699,12 +744,12 @@ Fixed issue where NodeDetailPanel showed "(definition not available)" even when 
 
 #### Changes
 
-**mviz-rerun-bridge/src/main.rs:**
+**dviz-rerun-bridge/src/main.rs:**
 - Refactored into separate functions:
   - `parse_dataflow_definitions()` - parses YAML, returns `Vec<NodeDefinition>`
   - `publish_node_definitions()` - publishes definitions to Zenoh
 - Node definitions now stored and republished every 3 seconds
-- Late-joining subscribers (like mviz-shell) now receive definitions reliably
+- Late-joining subscribers (like dviz-shell) now receive definitions reliably
 - Removed duplicate legacy function code
 
 #### Technical Details
@@ -738,7 +783,7 @@ while let Some(event) = events.recv() {
 
 The bridge now parses the dataflow YAML and publishes node definitions via Zenoh, enabling the NodeDetailPanel to display actual input/output ports for each node.
 
-#### Bridge Changes (mviz-rerun-bridge/src/main.rs)
+#### Bridge Changes (dviz-rerun-bridge/src/main.rs)
 
 - Added `publish_dataflow_definitions()` - parses dataflow YAML and publishes node definitions
 - Parses both operator-style and direct inputs/outputs from YAML
@@ -746,20 +791,20 @@ The bridge now parses the dataflow YAML and publishes node definitions via Zenoh
 - Publishes to `{prefix}/definitions/{node_id}` topics
 - Auto-discovers dataflow YAML from `DATAFLOW_PATH` env or common paths
 
-#### Protocol Changes (mviz-core/src/zenoh_protocol.rs)
+#### Protocol Changes (dviz-core/src/zenoh_protocol.rs)
 
 - Added `NodeInputDef` struct: port name and source reference
 - Added `NodeOutputDef` struct: port name and destination list
 - Added `NodeDefinition` struct: complete node with inputs/outputs
 - Added `DataflowDefinition` struct: full dataflow graph
 
-#### Receiver Changes (mviz-shell/src/zenoh_receiver.rs)
+#### Receiver Changes (dviz-shell/src/zenoh_receiver.rs)
 
 - Added `ZenohMessage::NodeDef(NodeDefinition)` variant
 - Handles `node_definition` message type from bridge
 - Tracks nodes from definitions in discovered_nodes
 
-#### App Integration (mviz-shell/src/app.rs)
+#### App Integration (dviz-shell/src/app.rs)
 
 - Handles `ZenohMessage::NodeDef` in `process_zenoh_messages()`
 - Converts protocol types to widget types (NodeInput, NodeOutput)
@@ -783,7 +828,7 @@ nodes:
 The NodeDetailPanel will now show:
 ```
 INPUTS:                          OUTPUTS:
-• tick (from: dora/timer/...)    • sim_pose -> [simple_planner, mviz_bridge]
+• tick (from: dora/timer/...)    • sim_pose -> [simple_planner, dviz_bridge]
 • steering_cmd (from: ...)       • sim_state -> [imu_synthesizer, ...]
 ```
 
@@ -795,7 +840,7 @@ INPUTS:                          OUTPUTS:
 
 Replaced center panel static text with an interactive Node Detail Panel for dataflow node inspection.
 
-#### New Widget: NodeDetailPanel (mviz-widgets/src/node_detail_panel.rs)
+#### New Widget: NodeDetailPanel (dviz-widgets/src/node_detail_panel.rs)
 
 - **Node Selector**: DropDown populated dynamically from discovered nodes
 - **I/O Display**: Two-column layout showing inputs (yellow) and outputs (blue)
@@ -825,7 +870,7 @@ pub struct NodeDetailPanel {
 - `set_node_definition()` - Set input/output ports
 - `filter_logs_for_node()` - Filter stored logs on node selection
 
-#### App Integration (mviz-shell/src/app.rs)
+#### App Integration (dviz-shell/src/app.rs)
 
 - Center panel now uses `<NodeDetailPanel>` instead of static text
 - Log entries routed to both LogPanel and NodeDetailPanel
@@ -871,7 +916,7 @@ Complete design specification for the Node Detail Panel widget, which will repla
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-#### New Protocol Types (mviz-core/src/zenoh_protocol.rs)
+#### New Protocol Types (dviz-core/src/zenoh_protocol.rs)
 
 - `NodeInput`: port name and source reference
 - `NodeOutput`: port name and destination nodes list
@@ -890,7 +935,7 @@ Complete design specification for the Node Detail Panel widget, which will repla
 - `parse_node_inputs()` - extract input ports from YAML
 - `parse_node_outputs()` - extract outputs with destinations
 
-#### Widget: NodeDetailPanel (mviz-widgets/src/node_detail_panel.rs)
+#### Widget: NodeDetailPanel (dviz-widgets/src/node_detail_panel.rs)
 
 - Node selector dropdown (populated from dataflow definition or discovery)
 - Two-column I/O display (inputs in yellow, outputs in blue)
@@ -900,8 +945,8 @@ Complete design specification for the Node Detail Panel widget, which will repla
 
 #### Documentation
 
-- Added Section 9.4 to mviz_design.md with full architecture
-- Added Task 4.8 to mviz_plan.md with acceptance criteria
+- Added Section 9.4 to dviz_design.md with full architecture
+- Added Task 4.8 to dviz_plan.md with acceptance criteria
 - Updated dependency graph
 
 ---
@@ -932,8 +977,8 @@ From path-following dataflow:
 
 ### Documentation
 
-- Updated mviz_design.md Section 9.3 with implementation details
-- Updated mviz_plan.md Task 4.5 with execution results
+- Updated dviz_design.md Section 9.3 with implementation details
+- Updated dviz_plan.md Task 4.5 with execution results
 
 ---
 
@@ -945,7 +990,7 @@ Phase 6: System Log Panel for Distributed Robotics Debugging
 
 Real-time log collection and display from dora dataflow nodes over LAN via Zenoh.
 
-#### LogPanel Widget (mviz-widgets/src/log_panel.rs)
+#### LogPanel Widget (dviz-widgets/src/log_panel.rs)
 
 - Collapsible panel with entry count display
 - Filter by log level (Debug, Info, Warn, Error)
@@ -955,13 +1000,13 @@ Real-time log collection and display from dora dataflow nodes over LAN via Zenoh
 - Color-coded log entries
 - Scrollable log content with newest entries first
 
-#### Protocol Extensions (mviz-core/zenoh_protocol.rs)
+#### Protocol Extensions (dviz-core/zenoh_protocol.rs)
 
 - `LogLevel` enum: Debug, Info, Warn, Error with color() method
 - `LogEntry` struct: level, message, node_id, timestamp, metadata
 - `LogData` struct: JSON payload for log messages
 
-#### Bridge Updates (mviz-rerun-bridge/src/main.rs)
+#### Bridge Updates (dviz-rerun-bridge/src/main.rs)
 
 - `publish_log()` helper function for sending log messages
 - Bridge startup/shutdown log messages
@@ -969,13 +1014,13 @@ Real-time log collection and display from dora dataflow nodes over LAN via Zenoh
 - Vehicle state updates logged every 50 frames
 - First message notification per source node
 
-#### Zenoh Receiver Updates (mviz-shell/src/zenoh_receiver.rs)
+#### Zenoh Receiver Updates (dviz-shell/src/zenoh_receiver.rs)
 
 - `ZenohMessage::Log(LogEntry)` - system log entry
 - `ZenohMessage::NodeDiscovered(String)` - new node ID
 - `discovered_nodes: Arc<RwLock<HashSet<String>>>` - dynamic tracking
 
-#### App Integration (mviz-shell/src/app.rs)
+#### App Integration (dviz-shell/src/app.rs)
 
 - Log entries processed in `process_zenoh_messages()`
 - Node discovery tracking with HashSet
@@ -983,8 +1028,8 @@ Real-time log collection and display from dora dataflow nodes over LAN via Zenoh
 
 ### Documentation
 
-- Added Section 9.3 to mviz_design.md with full architecture
-- Added Task 4.5 to mviz_plan.md with acceptance criteria
+- Added Section 9.3 to dviz_design.md with full architecture
+- Added Task 4.5 to dviz_plan.md with acceptance criteria
 - Updated dependency graph
 
 ---
@@ -996,10 +1041,10 @@ Phase 5: Zenoh Universal Protocol for LAN Visualization
 ### Architecture
 
 Distributed robotics visualization via Zenoh pub/sub:
-- **Robot side**: Dora dataflow with mviz-bridge publishes via Zenoh
-- **PC side**: mviz-shell receives via Zenoh, displays in Rerun
+- **Robot side**: Dora dataflow with dviz-bridge publishes via Zenoh
+- **PC side**: dviz-shell receives via Zenoh, displays in Rerun
 
-### New Crate: mviz-rerun-bridge (Dora Node)
+### New Crate: dviz-rerun-bridge (Dora Node)
 
 Universal Dora node that publishes ANY sensor data via Zenoh.
 
@@ -1013,23 +1058,23 @@ Universal Dora node that publishes ANY sensor data via Zenoh.
 
 #### Environment Variables
 - `ZENOH_CONNECT` - Zenoh router address (default: auto-discovery)
-- `ZENOH_TOPIC_PREFIX` - Topic prefix (default: "mviz")
+- `ZENOH_TOPIC_PREFIX` - Topic prefix (default: "dviz")
 
-### New Module: mviz-core/zenoh_protocol.rs
+### New Module: dviz-core/zenoh_protocol.rs
 
 Universal message format for Zenoh communication:
 - JSON header + optional binary payload
 - `MvizMessage` struct with type, timestamp, data, format, count
 - Serialization/deserialization utilities
 
-### New Module: mviz-shell/zenoh_receiver.rs
+### New Module: dviz-shell/zenoh_receiver.rs
 
 Universal Zenoh subscriber for PC-side visualization:
 - Subscribes to `{prefix}/**` wildcard topics
 - Parses universal message format
 - Sends typed `VisData` to UI thread
 
-### Enhanced: mviz-shell/app.rs
+### Enhanced: dviz-shell/app.rs
 
 - Zenoh connection button for LAN data reception
 - Universal message handler (`log_vis_data_to_rerun`)
@@ -1050,7 +1095,7 @@ Universal Zenoh subscriber for PC-side visualization:
 dora start dataflow-path-following.yml --name pathfollow
 
 # PC side (with display)
-cargo run -p mviz-shell
+cargo run -p dviz-shell
 # Click "Spawn Rerun" then "Connect Zenoh"
 ```
 
@@ -1081,8 +1126,8 @@ Phase 4: URDF Robot Model Loading with Rerun Built-in Data Loader
 - `so100.urdf` - SO-ARM100 robot arm URDF description
 - `assets/*.stl` - 13 STL mesh files for robot visualization
 - `car.urdf` - Simple car model with wheels, body, sensors
-- `mviz-displays/src/laser_scan.rs` - Laser scan simulation and display
-- `mviz-displays/src/robot_model.rs` - Robot model display plugin
+- `dviz-displays/src/laser_scan.rs` - Laser scan simulation and display
+- `dviz-displays/src/robot_model.rs` - Robot model display plugin
 
 ### Technical Changes
 - DisplaysPanelAction enum for widget event handling
@@ -1095,7 +1140,7 @@ Phase 4: URDF Robot Model Loading with Rerun Built-in Data Loader
 
 Phase 2: Display Plugins + Phase 3: Makepad UI Shell
 
-### New Crate: mviz-displays
+### New Crate: dviz-displays
 
 Display plugin system with visualization types.
 
@@ -1112,7 +1157,7 @@ Display plugin system with visualization types.
 - DisplayUpdateContext for transform lookups and Rerun logging
 - Marker lifetime management with automatic expiration
 
-### Enhanced Crate: mviz-widgets
+### Enhanced Crate: dviz-widgets
 
 New UI widgets for the control panel.
 
@@ -1139,7 +1184,7 @@ Enhanced application toolbar:
 - SpeedSelector dropdown
 - TimeDisplay
 
-### Enhanced App: mviz-shell
+### Enhanced App: dviz-shell
 
 Three-column layout application:
 - **Left Panel**: DisplaysPanel + IMU/Vehicle sensor panels
@@ -1147,7 +1192,7 @@ Three-column layout application:
 - **Right Panel**: PropertiesPanel for display configuration
 
 ### Tests
-- 29 new tests in mviz-displays
+- 29 new tests in dviz-displays
 - All key functions validated:
   - App launches successfully
   - Launch Rerun spawns viewer
@@ -1161,7 +1206,7 @@ Three-column layout application:
 
 Phase 1 Streams B+C: Transform System and Rerun Core Adapters.
 
-### New Crate: mviz-transform
+### New Crate: dviz-transform
 
 Transform system for coordinate frame management, similar to ROS TF.
 
@@ -1183,9 +1228,9 @@ Transform system for coordinate frame management, similar to ROS TF.
   - `prune_old()` - Remove transforms older than duration
 - `TransformError` - NoPath, TransformNotFound, FrameNotFound, EmptyBuffer
 
-### Enhanced Crate: mviz-rerun-bridge
+### Enhanced Crate: dviz-rerun-bridge
 
-Core adapters for logging mviz-core types to Rerun viewer.
+Core adapters for logging dviz-core types to Rerun viewer.
 
 #### PointCloudCoreAdapter
 - Log `PointCloud` to Rerun with color modes:
@@ -1210,19 +1255,19 @@ Core adapters for logging mviz-core types to Rerun viewer.
 - Per-marker colors and per-vertex colors supported
 
 ### Tests
-- 21 new tests in mviz-transform
-- 3 new tests in mviz-rerun-bridge core adapters
+- 21 new tests in dviz-transform
+- 3 new tests in dviz-rerun-bridge core adapters
 - 71 total tests passing across workspace
 
 ---
 
 ## v0.1.1 (2026-01-06)
 
-Phase 1: Core Foundation - Added mviz-core crate with foundational types.
+Phase 1: Core Foundation - Added dviz-core crate with foundational types.
 
-### New Crate: mviz-core
+### New Crate: dviz-core
 
-Core types and traits for the MViz robotics visualizer.
+Core types and traits for the DViz robotics visualizer.
 
 #### Transform Types
 - `FrameId` - Coordinate frame identifier
@@ -1265,7 +1310,7 @@ Core types and traits for the MViz robotics visualizer.
 
 ## v0.1.0 (2026-01-07)
 
-Initial release of MViz - a visualization tool combining Makepad UI with Rerun 3D viewer.
+Initial release of DViz - a visualization tool combining Makepad UI with Rerun 3D viewer.
 
 ### Features
 - **Makepad UI Framework**: Native desktop application with responsive controls
@@ -1289,10 +1334,10 @@ Initial release of MViz - a visualization tool combining Makepad UI with Rerun 3
 
 ### Project Structure
 ```
-mviz/
-├── mviz-shell/          # Main application
-├── mviz-widgets/        # Custom UI widgets
-├── mviz-rerun-bridge/   # Rerun SDK integration
+dviz/
+├── dviz-shell/          # Main application
+├── dviz-widgets/        # Custom UI widgets
+├── dviz-rerun-bridge/   # Rerun SDK integration
 └── resources/           # Icons and assets
 ```
 

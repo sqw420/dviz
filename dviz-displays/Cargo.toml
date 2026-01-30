@@ -1,0 +1,19 @@
+[package]
+name = "dviz-displays"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Display plugins for DViz robotics visualizer"
+
+[dependencies]
+dviz-core = { path = "../dviz-core" }
+dviz-transform = { path = "../dviz-transform" }
+dviz-rerun-bridge = { path = "../dviz-rerun-bridge" }
+dviz-urdf = { path = "../dviz-urdf" }
+rerun = { workspace = true }
+glam = { workspace = true }
+parking_lot = { workspace = true }
+log = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]

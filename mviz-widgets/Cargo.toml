@@ -1,8 +1,0 @@
-[package]
-name = "mviz-widgets"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-
-[dependencies]
-makepad-widgets = { workspace = true }

@@ -10,7 +10,7 @@ Cargo.lock
 *.swo
 
 # Debug logs
-/tmp/mviz_debug.log
+/tmp/dviz_debug.log
 
 # Claude instructions
 CLAUDE.md

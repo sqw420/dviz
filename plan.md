@@ -1,8 +1,8 @@
-# MViz Phase 1 Implementation Plan
+# DViz Phase 1 Implementation Plan
 
 ## Option 2: Separate Rerun Window with Makepad Control Panel
 
-This plan implements the robotics visualizer using Makepad for the control UI and Rerun as a separate 3D visualization window, as recommended in `mviz_design.md` Section 13.
+This plan implements the robotics visualizer using Makepad for the control UI and Rerun as a separate 3D visualization window, as recommended in `dviz_design.md` Section 13.
 
 ---
 
@@ -29,9 +29,9 @@ This plan implements the robotics visualizer using Makepad for the control UI an
 ## Reference Implementation
 
 **Working Code**: `/Users/nupylot/Public/dora-viz/`
-- `mviz-shell/` - Makepad control panel application
+- `dviz-shell/` - Makepad control panel application
 - `dora-rerun-bridge/` - Rerun data bridge for sensor messages
-- `mviz-widgets/` - Custom Makepad widgets (theme, sensor panel, control bar)
+- `dviz-widgets/` - Custom Makepad widgets (theme, sensor panel, control bar)
 
 **Test Data Source**: `/Users/nupylot/Public/dora-examples/examples/vehicle-path-following/`
 - `bicycle_model.py` - Vehicle simulator (outputs sim_pose, sim_state)
@@ -49,8 +49,8 @@ This plan implements the robotics visualizer using Makepad for the control UI an
 #### 1.1 Create Workspace Structure
 
 ```bash
-mkdir -p mviz
-cd mviz
+mkdir -p dviz
+cd dviz
 ```
 
 **Cargo.toml** (workspace root):
@@ -58,9 +58,9 @@ cd mviz
 [workspace]
 resolver = "2"
 members = [
-    "mviz-shell",
-    "mviz-widgets",
-    "mviz-rerun-bridge",
+    "dviz-shell",
+    "dviz-widgets",
+    "dviz-rerun-bridge",
 ]
 
 [workspace.package]
@@ -100,9 +100,9 @@ rand = "0.8"
 #### 1.2 Create Crate Directories
 
 ```bash
-mkdir -p mviz-shell/src
-mkdir -p mviz-widgets/src
-mkdir -p mviz-rerun-bridge/src
+mkdir -p dviz-shell/src
+mkdir -p dviz-widgets/src
+mkdir -p dviz-rerun-bridge/src
 ```
 
 **Acceptance Criteria**:
@@ -113,11 +113,11 @@ mkdir -p mviz-rerun-bridge/src
 
 ### Step 2: Makepad Widget Library
 **Duration**: 4 hours
-**Reference**: `/Users/nupylot/Public/dora-viz/mviz-widgets/`
+**Reference**: `/Users/nupylot/Public/dora-viz/dviz-widgets/`
 
 #### 2.1 Create Theme Module
 
-**File**: `mviz-widgets/src/theme.rs`
+**File**: `dviz-widgets/src/theme.rs`
 
 ```
 AI Prompt:
@@ -126,12 +126,12 @@ AI Prompt:
 - Text colors: TEXT_PRIMARY (#ffffff), TEXT_SECONDARY (#a0a0a0), TEXT_MUTED (#606060)
 - Font styles: FONT_REGULAR, FONT_MEDIUM, FONT_SEMIBOLD, FONT_BOLD
 - Common widget styles for buttons, labels, panels
-Reference: dora-viz/mviz-widgets/src/theme.rs"
+Reference: dora-viz/dviz-widgets/src/theme.rs"
 ```
 
 #### 2.2 Create Sensor Panel Widget
 
-**File**: `mviz-widgets/src/sensor_panel.rs`
+**File**: `dviz-widgets/src/sensor_panel.rs`
 
 ```
 AI Prompt:
@@ -142,12 +142,12 @@ AI Prompt:
 - Support for position data: x, y, z
 - Live update via set_text() methods
 Use live_design! macro for declarative UI.
-Reference: dora-viz/mviz-widgets/src/sensor_panel.rs"
+Reference: dora-viz/dviz-widgets/src/sensor_panel.rs"
 ```
 
 #### 2.3 Create Control Bar Widget
 
-**File**: `mviz-widgets/src/control_bar.rs`
+**File**: `dviz-widgets/src/control_bar.rs`
 
 ```
 AI Prompt:
@@ -157,7 +157,7 @@ AI Prompt:
 - Record button
 - Connection status (Connected/Disconnected)
 Handle hover states and click events.
-Reference: dora-viz/mviz-widgets/src/control_bar.rs"
+Reference: dora-viz/dviz-widgets/src/control_bar.rs"
 ```
 
 **Acceptance Criteria**:
@@ -173,7 +173,7 @@ Reference: dora-viz/mviz-widgets/src/control_bar.rs"
 
 #### 3.1 Create Rerun Connection Manager
 
-**File**: `mviz-rerun-bridge/src/lib.rs`
+**File**: `dviz-rerun-bridge/src/lib.rs`
 
 ```rust
 //! Rerun Bridge - Manages connection to Rerun viewer and data logging
@@ -237,7 +237,7 @@ impl RerunBridge {
 
 #### 3.2 Create Sensor Data Adapters
 
-**File**: `mviz-rerun-bridge/src/adapters.rs`
+**File**: `dviz-rerun-bridge/src/adapters.rs`
 
 ```
 AI Prompt:
@@ -278,11 +278,11 @@ Reference: dora-viz/dora-rerun-bridge/src/main.rs (log_imu_data, log_position_da
 
 ### Step 4: Makepad Application Shell
 **Duration**: 6 hours
-**Reference**: `/Users/nupylot/Public/dora-viz/mviz-shell/src/app.rs`
+**Reference**: `/Users/nupylot/Public/dora-viz/dviz-shell/src/app.rs`
 
 #### 4.1 Create Main Application
 
-**File**: `mviz-shell/src/app.rs`
+**File**: `dviz-shell/src/app.rs`
 
 ```
 AI Prompt:
@@ -307,7 +307,7 @@ Key methods:
 - update_sensor_display() - update IMU/position labels
 - simulate_sensor_data() - generate test data for validation
 
-Reference: dora-viz/mviz-shell/src/app.rs (full implementation)"
+Reference: dora-viz/dviz-shell/src/app.rs (full implementation)"
 ```
 
 #### 4.2 Implement Event Handling
@@ -326,7 +326,7 @@ Wire up:
 - Play button -> toggle is_running
 - When running, call simulate_sensor_data() each frame
 
-Reference: dora-viz/mviz-shell/src/app.rs (handle_event, handle_launch_button)"
+Reference: dora-viz/dviz-shell/src/app.rs (handle_event, handle_launch_button)"
 ```
 
 **Acceptance Criteria**:
@@ -400,7 +400,7 @@ fn simulate_lidar_scan(&self) -> Vec<[f32; 3]> {
 
 Create a Dora node that bridges sensor data to our application:
 
-**File**: `mviz-dora-bridge/src/main.rs`
+**File**: `dviz-dora-bridge/src/main.rs`
 
 ```
 AI Prompt:
@@ -459,9 +459,9 @@ nodes:
         - imu_msg
 
   # Our Rerun bridge
-  - id: mviz-rerun-bridge
-    build: cargo build --package mviz-rerun-bridge --release
-    path: target/release/mviz-rerun-bridge
+  - id: dviz-rerun-bridge
+    build: cargo build --package dviz-rerun-bridge --release
+    path: target/release/dviz-rerun-bridge
     inputs:
       sim_pose: bicycle_model/sim_pose
       sim_state: bicycle_model/sim_state
@@ -469,7 +469,7 @@ nodes:
       target_point: simple_planner/target_point
       waypoints: simple_planner/waypoints
     env:
-      RERUN_RECORDING_ID: mviz_vehicle
+      RERUN_RECORDING_ID: dviz_vehicle
       RERUN_SPAWN: "true"
 ```
 
@@ -506,7 +506,7 @@ nodes:
 
 ```bash
 # Terminal 1: Start Makepad control panel
-cargo run --package mviz-shell --release
+cargo run --package dviz-shell --release
 
 # Terminal 2: Start Dora dataflow
 cd ../dora-examples/examples/vehicle-path-following
@@ -525,19 +525,19 @@ dora start dataflow_sim.yml --name validation
 ## File Structure Summary
 
 ```
-mviz/
+dviz/
 ├── Cargo.toml                    # Workspace root
 ├── dataflow.yml                  # Dora dataflow configuration
 ├── README.md
 │
-├── mviz-shell/                   # Makepad control panel
+├── dviz-shell/                   # Makepad control panel
 │   ├── Cargo.toml
 │   └── src/
 │       ├── main.rs               # Entry point
 │       ├── lib.rs
 │       └── app.rs                # Application logic
 │
-├── mviz-widgets/                 # Reusable Makepad widgets
+├── dviz-widgets/                 # Reusable Makepad widgets
 │   ├── Cargo.toml
 │   └── src/
 │       ├── lib.rs
@@ -545,7 +545,7 @@ mviz/
 │       ├── sensor_panel.rs       # Sensor data display
 │       └── control_bar.rs        # Play/pause, status
 │
-└── mviz-rerun-bridge/           # Rerun integration
+└── dviz-rerun-bridge/           # Rerun integration
     ├── Cargo.toml
     └── src/
         ├── lib.rs                # RerunBridge struct
@@ -595,9 +595,9 @@ mviz/
 ### 1. Rerun Viewer Spawn (from dora-viz)
 
 ```rust
-// mviz-shell/src/app.rs
+// dviz-shell/src/app.rs
 fn launch_rerun_viewer(&mut self, cx: &mut Cx) {
-    let rec = rerun::RecordingStreamBuilder::new("mviz_rerun")
+    let rec = rerun::RecordingStreamBuilder::new("dviz_rerun")
         .spawn()
         .expect("Failed to spawn Rerun viewer");
 

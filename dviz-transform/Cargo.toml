@@ -1,0 +1,14 @@
+[package]
+name = "dviz-transform"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Transform system for DViz robotics visualizer"
+
+[dependencies]
+dviz-core = { path = "../dviz-core" }
+glam = { workspace = true }
+parking_lot = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]

@@ -1,20 +1,20 @@
-# MViz Dora Dataflow with Zenoh Bridge
+# DViz Dora Dataflow with Zenoh Bridge
 #
-# This dataflow connects MViz to the vehicle-path-following simulation.
-# The mviz-dora-bridge publishes sensor data via Zenoh for remote visualization.
+# This dataflow connects DViz to the vehicle-path-following simulation.
+# The dviz-dora-bridge publishes sensor data via Zenoh for remote visualization.
 #
 # Usage (Same Machine):
-#   1. Build: cargo build --release -p mviz-rerun-bridge
+#   1. Build: cargo build --release -p dviz-rerun-bridge
 #   2. Start Dora: dora up
-#   3. Run dataflow: dora start dataflow.yml --name mviz
-#   4. In another terminal: cargo run -p mviz-shell
+#   3. Run dataflow: dora start dataflow.yml --name dviz
+#   4. In another terminal: cargo run -p dviz-shell
 #   5. Click "Spawn Rerun" then "Connect Zenoh"
 #
 # Usage (Robot + PC on LAN):
 #   Robot side:
 #     dora start dataflow-robot.yml --name robot
 #   PC side:
-#     cargo run -p mviz-shell
+#     cargo run -p dviz-shell
 #     Click "Spawn Rerun" then "Connect Zenoh"
 #
 # Requirements:
@@ -59,11 +59,11 @@ nodes:
       outputs:
         - imu_msg
 
-  # MViz Zenoh Bridge - Publish sensor data via Zenoh
+  # DViz Zenoh Bridge - Publish sensor data via Zenoh
   # Receives all sensor data and publishes via Zenoh for remote visualization
-  - id: mviz_bridge
-    build: cargo build --release -p mviz-rerun-bridge
-    path: target/release/mviz-dora-bridge
+  - id: dviz_bridge
+    build: cargo build --release -p dviz-rerun-bridge
+    path: target/release/dviz-dora-bridge
     inputs:
       sim_pose: bicycle_model/sim_pose
       sim_state: bicycle_model/sim_state
@@ -72,7 +72,7 @@ nodes:
       waypoints: simple_planner/waypoints
     env:
       # Zenoh configuration
-      ZENOH_TOPIC_PREFIX: mviz
+      ZENOH_TOPIC_PREFIX: dviz
       # Optional: specify router address for remote connection
       # ZENOH_CONNECT: tcp/192.168.1.100:7447
       RUST_LOG: info

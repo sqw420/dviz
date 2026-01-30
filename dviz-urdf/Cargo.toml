@@ -1,0 +1,29 @@
+[package]
+name = "dviz-urdf"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "URDF parsing and robot model loading for DViz"
+
+[dependencies]
+dviz-core = { path = "../dviz-core" }
+
+# URDF parsing
+urdf-rs = "0.8"
+
+# Mesh loading
+stl_io = "0.7"
+
+# Math
+glam = { workspace = true }
+nalgebra = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+log = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"
