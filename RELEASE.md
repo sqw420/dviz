@@ -1,5 +1,18 @@
 # DViz Release Notes
 
+## v0.4.4 (2026-01-30)
+
+### Documentation: Add Demo Images to Examples Directory
+
+Added demo GIF and screenshot files to the examples directory.
+
+#### Files Added
+
+- `examples/dviz1.gif` - Demo animation showing DViz in action
+- `examples/dviz2.png` - Screenshot showing the visualization interface
+
+---
+
 ## v0.4.3 (2026-01-30)
 
 ### Documentation: Add Demo Images to README
