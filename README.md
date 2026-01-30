@@ -90,6 +90,87 @@ The visualization shows:
 - **Target point**: Current pursuit target
 - **IMU data**: Acceleration/gyroscope scalars
 
+## Example: Point Cloud Mapping
+
+This example runs a vehicle mapping pipeline that builds a 3D map from point cloud data using ICP odometry.
+
+### Prerequisites
+
+```bash
+# Additional Python dependencies
+pip install open3d
+
+# Clone dora-examples (contains the mapping operators)
+git clone https://github.com/dora-rs/dora-examples.git ~/dora-examples
+```
+
+### Run Mapping Dataflow
+
+```bash
+# Terminal 1: Start Dora daemon
+dora up
+
+# Terminal 2: Run the mapping dataflow
+dora start examples/dataflow-mapping.yml --name mapping
+
+# Terminal 3: Run DViz
+cargo run -p dviz-shell --release
+```
+
+### View in Rerun
+
+In the DViz UI:
+1. Click **Spawn Rerun** to open the 3D viewer
+2. Zenoh auto-connects and receives mapping data
+
+The visualization shows:
+- **Point clouds**: LiDAR scans from PCD files
+- **Odometry pose**: Vehicle position estimated by ICP
+- **Trajectory**: Path traveled by the vehicle
+
+## Example: ROS Bag Playback
+
+DViz can play back ROS1 bag files with multi-sensor visualization support.
+
+### Supported Sensors
+
+- **PointCloud2**: LiDAR point clouds (e.g., Velodyne)
+- **Imu**: Accelerometer and gyroscope data
+- **NMEA Sentence**: GPS position from NMEA messages
+- **TimeReference**: GPS time synchronization
+- **Temperature**: Temperature sensor readings
+
+### Play a ROS Bag
+
+```bash
+# Terminal 1: Run DViz
+cargo run -p dviz-shell --release
+```
+
+In the DViz UI:
+1. Click **Spawn Rerun** to open the 3D viewer
+2. Click **File** → **Open Bag** (or use the File button)
+3. Select the bag file: `examples/hdl_400.bag`
+4. Click **Play** to start playback
+
+### Playback Controls
+
+- **Play/Pause**: Toggle playback
+- **Stop**: Reset to beginning
+- **Seek**: Jump to specific time in the bag
+
+### Visualization in Rerun
+
+The `hdl_400.bag` example displays:
+- **world/lidar**: Velodyne point cloud (height-colored)
+- **world/imu/accel_arrow**: Acceleration vector (cyan)
+- **world/imu/gyro_arrow**: Angular velocity vector (orange)
+- **world/imu/accel_x,y,z**: Acceleration scalars
+- **world/imu/gyro_x,y,z**: Gyroscope scalars
+- **world/gps/position**: GPS position (green point)
+- **world/gps/latitude,longitude,altitude**: GPS scalars
+- **world/temperature/celsius**: Temperature reading
+
 ## Distributed Setup (Robot + Debug PC)
 
 DViz is designed for remote debugging where:

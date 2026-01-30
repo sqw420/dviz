@@ -1,5 +1,26 @@
 # DViz Release Notes
 
+## v0.4.5 (2026-01-30)
+
+### Documentation: Add Usage Examples to README
+
+Added detailed examples for point cloud mapping and ROS bag playback.
+
+#### New Examples
+
+**Example: Point Cloud Mapping**
+- Prerequisites for dora-examples and open3d
+- Step-by-step instructions to run dataflow-mapping.yml
+- Description of visualization outputs (point clouds, odometry, trajectory)
+
+**Example: ROS Bag Playback**
+- Supported sensor types (PointCloud2, Imu, NMEA, TimeReference, Temperature)
+- Instructions to play `examples/hdl_400.bag`
+- Playback controls (Play/Pause/Stop/Seek)
+- Complete Rerun entity hierarchy for multi-sensor visualization
+
+---
+
 ## v0.4.4 (2026-01-30)
 
 ### Documentation: Add Demo Images to Examples Directory
