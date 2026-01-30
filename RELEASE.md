@@ -1,5 +1,39 @@
 # DViz Release Notes
 
+## v0.4.1 (2026-01-30)
+
+### Documentation: Comprehensive README
+
+Added comprehensive README.md with installation instructions, usage examples, and distributed debugging setup guide.
+
+#### New Documentation
+
+**README.md:**
+- Project overview and feature list
+- Installation prerequisites (Rust, Dora CLI, Python dependencies)
+- Build instructions
+- Quick start guide for single machine usage
+- Path following simulation example
+- Distributed setup guide (Robot + Debug PC over LAN)
+- Zenoh network configuration:
+  - Auto-discovery (default multicast scouting)
+  - Direct connection with `ZENOH_CONNECT`
+  - Zenoh router setup for different subnets
+- IP address change handling scenarios
+- Network troubleshooting table
+- Environment variables reference
+- Dataflow examples overview
+- Project structure
+- Zenoh message protocol documentation
+
+#### Files Reorganized
+
+- Moved dataflow files to `examples/` directory
+- Moved design docs to `docs/` directory
+- Added `.claude/` settings directory
+
+---
+
 ## v0.4.0 (2026-01-30)
 
 ### Major: Repository Rename from mviz to dviz
