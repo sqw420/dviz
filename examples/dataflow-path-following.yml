@@ -57,8 +57,7 @@ nodes:
 
   # DViz Zenoh Bridge - Publish simulation data via Zenoh
   - id: dviz_bridge
-    build: cargo build --release -p dviz-rerun-bridge
-    path: target/release/dviz-dora-bridge
+    path: /Users/nupylot/Public/dviz/target/release/dviz-dora-bridge
     inputs:
       sim_pose: bicycle_model/sim_pose
       sim_state: bicycle_model/sim_state

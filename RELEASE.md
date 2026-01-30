@@ -1,5 +1,44 @@
 # DViz Release Notes
 
+## v0.4.3 (2026-01-30)
+
+### Documentation: Add Demo Images to README
+
+Added demo GIF and screenshot to README.md for better project presentation.
+
+#### Changes
+
+- Added `dviz1.gif` demo animation showing DViz in action
+- Added `dviz2.png` screenshot showing the visualization interface
+
+---
+
+## v0.4.2 (2026-01-30)
+
+### Fix: Absolute Paths in Dataflow Files
+
+Fixed dataflow YAML files to use absolute paths for the dviz-dora-bridge binary, resolving "No such file or directory" errors when running from the examples directory.
+
+#### Files Fixed
+
+- `dataflow.yml`
+- `examples/dataflow-path-following.yml`
+- `examples/dataflow-robot.yml`
+- `examples/dataflow-mapping.yml`
+- `examples/dataflow-ros2.yml`
+
+#### Change
+
+```yaml
+# Before (relative path - fails when run from examples/)
+path: target/release/dviz-dora-bridge
+
+# After (absolute path - works from any directory)
+path: /Users/nupylot/Public/dviz/target/release/dviz-dora-bridge
+```
+
+---
+
 ## v0.4.1 (2026-01-30)
 
 ### Documentation: Comprehensive README

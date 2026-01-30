@@ -2,6 +2,10 @@
 
 A modern robotics visualization tool built in Rust, combining Makepad UI, Rerun 3D visualization, and Zenoh distributed networking for debugging robots and autonomous systems.
 
+![DViz Demo](examples/dviz1.gif)
+
+![DViz Screenshot](examples/dviz2.png)
+
 ## Features
 
 - **Distributed-first architecture**: Debug robots remotely over LAN using Zenoh auto-discovery
