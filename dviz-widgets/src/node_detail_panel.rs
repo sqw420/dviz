@@ -34,7 +34,7 @@ live_design! {
 
             <Label> {
                 text: "NODE:"
-                draw_text: { color: #6b7280, text_style: { font_size: 12.0 } }
+                draw_text: { color: (TEXT_SECONDARY), text_style: { font_size: 12.0 } }
             }
 
             node_selector = <DropDown> {
@@ -84,7 +84,7 @@ live_design! {
                     width: Fill, height: Fill
                     text: "  (select a node)"
                     draw_text: {
-                        color: #6b7280
+                        color: (TEXT_SECONDARY)
                         text_style: { font_size: 10.0 }
                         wrap: Word
                     }
@@ -113,7 +113,7 @@ live_design! {
                     width: Fill, height: Fill
                     text: "  (select a node)"
                     draw_text: {
-                        color: #6b7280
+                        color: (TEXT_SECONDARY)
                         text_style: { font_size: 10.0 }
                         wrap: Word
                     }
@@ -137,12 +137,12 @@ live_design! {
 
             <Label> {
                 text: "NODE LOGS:"
-                draw_text: { color: #374151, text_style: { font_size: 11.0 } }
+                draw_text: { color: (TEXT_SECONDARY), text_style: { font_size: 11.0 } }
             }
 
             log_count = <Label> {
                 text: "0 entries"
-                draw_text: { color: #9ca3af, text_style: { font_size: 10.0 } }
+                draw_text: { color: (TEXT_MUTED), text_style: { font_size: 10.0 } }
             }
 
             <View> { width: Fill, height: 1 }
@@ -151,7 +151,7 @@ live_design! {
                 width: Fit, height: 24
                 padding: {left: 8, right: 8}
                 text: "Clear"
-                draw_text: { color: #6b7280 }
+                draw_text: { color: (TEXT_SECONDARY) }
             }
         }
 
@@ -163,7 +163,7 @@ live_design! {
                 width: Fill, height: Fit
                 text: "Select a node to view its logs"
                 draw_text: {
-                    color: #6b7280
+                    color: (TEXT_SECONDARY)
                     text_style: { font_size: 10.0 }
                     wrap: Word
                 }

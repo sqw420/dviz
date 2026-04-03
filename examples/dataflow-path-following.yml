@@ -24,7 +24,7 @@ nodes:
   # Receives steering/throttle commands, outputs vehicle pose
   - id: bicycle_model
     operator:
-      python: /Users/nupylot/Public/dora-examples/examples/vehicle-path-following/src/bicycle_model.py
+      python: /home/demo/dora-examples/examples/vehicle-path-following/src/bicycle_model.py
       inputs:
         tick: dora/timer/millis/20
         steering_cmd: simple_planner/steering_cmd
@@ -37,7 +37,7 @@ nodes:
   # Receives vehicle pose, outputs steering/throttle commands
   - id: simple_planner
     operator:
-      python: /Users/nupylot/Public/dora-examples/examples/vehicle-path-following/src/simple_planner.py
+      python: /home/demo/dora-examples/examples/vehicle-path-following/src/simple_planner.py
       inputs:
         sim_pose: bicycle_model/sim_pose
       outputs:
@@ -49,7 +49,7 @@ nodes:
   # IMU Synthesizer - Generate IMU from vehicle state
   - id: imu_synthesizer
     operator:
-      python: /Users/nupylot/Public/dora-examples/examples/vehicle-path-following/src/imu_synthesizer.py
+      python: /home/demo/dora-examples/examples/vehicle-path-following/src/imu_synthesizer.py
       inputs:
         sim_state: bicycle_model/sim_state
       outputs:
@@ -57,7 +57,7 @@ nodes:
 
   # DViz Zenoh Bridge - Publish simulation data via Zenoh
   - id: dviz_bridge
-    path: /Users/nupylot/Public/dviz/target/release/dviz-dora-bridge
+    path: /home/demo/dviz/target/release/dviz-dora-bridge
     inputs:
       sim_pose: bicycle_model/sim_pose
       sim_state: bicycle_model/sim_state

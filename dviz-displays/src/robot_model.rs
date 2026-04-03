@@ -60,6 +60,8 @@ pub struct RobotModelDisplay {
     link_meshes: HashMap<String, Vec<CachedMesh>>,
     /// Joint positions
     joint_positions: HashMap<String, f32>,
+    /// Base directory for resolving relative mesh paths
+    mesh_base_dir: Option<PathBuf>,
 }
 
 /// Cached mesh for a link
@@ -92,6 +94,7 @@ impl RobotModelDisplay {
             robot: None,
             link_meshes: HashMap::new(),
             joint_positions: HashMap::new(),
+            mesh_base_dir: None,
         }
     }
 
@@ -100,6 +103,7 @@ impl RobotModelDisplay {
         let robot = parse_urdf(path)
             .map_err(|e| DisplayError::InitializationFailed(format!("Failed to parse URDF: {}", e)))?;
 
+        self.mesh_base_dir = std::path::Path::new(path).parent().map(|p| p.to_path_buf());
         self.properties.source = RobotSource::File(PathBuf::from(path));
         self.set_robot(robot)?;
         Ok(())
@@ -179,12 +183,19 @@ impl RobotModelDisplay {
                 Ok(primitives::create_sphere(*radius, 16, 32))
             }
             Geometry::Mesh { filename, scale } => {
-                // Try to load mesh file
+                // Try to load mesh file, resolving relative paths against the URDF's directory
                 let loader = dviz_urdf::mesh_loader::MultiFormatMeshLoader::new();
                 let path = std::path::Path::new(filename);
+                let resolved = if path.is_relative() {
+                    self.mesh_base_dir.as_ref()
+                        .map(|d| d.join(path))
+                        .unwrap_or_else(|| path.to_path_buf())
+                } else {
+                    path.to_path_buf()
+                };
 
-                if path.exists() {
-                    loader.load_scaled(path, *scale)
+                if resolved.exists() {
+                    loader.load_scaled(&resolved, *scale)
                         .map_err(|e| DisplayError::InitializationFailed(format!("Failed to load mesh: {}", e)))
                 } else {
                     // Return placeholder cube if mesh not found
@@ -257,28 +268,45 @@ impl RobotModelDisplay {
             return Ok(());
         }
 
-        let _robot = match &self.robot {
+        let robot = match &self.robot {
             Some(r) => r,
-            None => return Ok(()), // No robot loaded
+            None => return Ok(()),
         };
 
         let rec = ctx.recording_stream();
 
-        // For each link, compute transform and log meshes
+        // Pre-compute FK transforms for all links
+        let mut link_world_transforms: HashMap<String, dviz_core::types::Transform> = HashMap::new();
+        let root = robot.root_link.clone().unwrap_or_default();
+        let mut queue = vec![root.clone()];
+        link_world_transforms.insert(root, dviz_core::types::Transform::IDENTITY);
+        while let Some(link_name) = queue.first().cloned() {
+            queue.remove(0);
+            let parent_world = *link_world_transforms.get(&link_name)
+                .unwrap_or(&dviz_core::types::Transform::IDENTITY);
+            for child in robot.child_links(&link_name) {
+                if let Some(joint) = robot.parent_joint(child) {
+                    let pos = self.joint_positions.get(&joint.name).copied().unwrap_or(0.0);
+                    let child_world = parent_world * joint.transform_at(pos);
+                    link_world_transforms.insert(child.to_string(), child_world);
+                }
+                queue.push(child.to_string());
+            }
+        }
+
         for (link_name, meshes) in &self.link_meshes {
-            // Build frame name with optional prefix
             let frame_name = if self.properties.tf_prefix.is_empty() {
                 link_name.clone()
             } else {
                 format!("{}/{}", self.properties.tf_prefix, link_name)
             };
 
-            // Try to get transform from TF buffer
+            // Use TF if available, otherwise fall back to FK
             let link_transform = ctx.lookup_transform(&frame_name)
-                .unwrap_or(dviz_core::types::Transform::IDENTITY);
+                .unwrap_or_else(|| link_world_transforms.get(link_name).copied()
+                    .unwrap_or(dviz_core::types::Transform::IDENTITY));
 
             for cached_mesh in meshes {
-                // Skip based on visual/collision settings
                 if cached_mesh.is_visual && !self.properties.visual_enabled {
                     continue;
                 }
@@ -286,10 +314,7 @@ impl RobotModelDisplay {
                     continue;
                 }
 
-                // Compute final transform
                 let mesh_transform = link_transform * cached_mesh.local_transform;
-
-                // Create entity path
                 let entity_path = format!(
                     "{}/{}/{}",
                     &self.base.entity_path,
@@ -297,14 +322,7 @@ impl RobotModelDisplay {
                     if cached_mesh.is_visual { "visual" } else { "collision" }
                 );
 
-                // Log mesh to Rerun
-                self.log_mesh(
-                    rec,
-                    &entity_path,
-                    &cached_mesh.mesh,
-                    &mesh_transform,
-                    cached_mesh.color,
-                )?;
+                self.log_mesh(rec, &entity_path, &cached_mesh.mesh, &mesh_transform, cached_mesh.color)?;
             }
         }
 

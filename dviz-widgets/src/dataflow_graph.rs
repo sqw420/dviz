@@ -110,15 +110,20 @@ live_design! {
             width: Fill, height: Fill
             show_bg: true
             draw_bg: {
-                // Grid background - modern tinted theme
+                instance dark_mode: 0.0
                 fn pixel(self) -> vec4 {
                     let grid_size = 20.0;
                     let pos = self.pos * self.rect_size;
                     let grid_x = mod(pos.x, grid_size);
                     let grid_y = mod(pos.y, grid_size);
 
-                    let base_color = vec4(0.95, 0.97, 0.99, 1.0);   // Tinted slate (#f2f6fc)
-                    let grid_color = vec4(0.88, 0.91, 0.95, 1.0);   // Subtle grid (#e0e8f2)
+                    let base_light = vec4(0.95, 0.97, 0.99, 1.0);
+                    let grid_light = vec4(0.88, 0.91, 0.95, 1.0);
+                    let base_dark  = vec4(0.059, 0.090, 0.165, 1.0);
+                    let grid_dark  = vec4(0.122, 0.161, 0.231, 1.0);
+
+                    let base_color = mix(base_light, base_dark, self.dark_mode);
+                    let grid_color = mix(grid_light, grid_dark, self.dark_mode);
 
                     if grid_x < 1.0 || grid_y < 1.0 {
                         return grid_color;
@@ -201,8 +206,7 @@ pub enum DataflowGraphAction {
 pub struct DataflowGraphWidget {
     #[deref]
     view: View,
-
-    /// Nodes in the graph
+    #[live] dark_mode: f32,
     #[rust] nodes: Vec<GraphDisplayNode>,
 
     /// Edges in the graph

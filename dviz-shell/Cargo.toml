@@ -10,6 +10,7 @@ dviz-widgets = { path = "../dviz-widgets" }
 dviz-rerun-bridge = { path = "../dviz-rerun-bridge" }
 dviz-displays = { path = "../dviz-displays" }
 dviz-core = { path = "../dviz-core" }
+dviz-transform = { path = "../dviz-transform" }
 dviz-rosbag = { path = "../dviz-rosbag" }
 rerun = { workspace = true }
 rfd = "0.15"  # Native file dialog

@@ -23,10 +23,11 @@ live_design! {
         draw_bg: {
             instance hover: 0.0
             instance selected: 0.0
+            instance dark_mode: 0.0
             fn pixel(self) -> vec4 {
-                let base = vec4(0.97, 0.98, 0.99, 1.0);        // Slightly tinted (#f8fafc)
-                let hover_color = vec4(0.88, 0.91, 0.94, 1.0); // Slate-200 hover (#e2e8f0)
-                let selected_color = vec4(0.85, 0.92, 0.98, 1.0); // Light blue selected
+                let base = mix(vec4(0.97, 0.98, 0.99, 1.0), vec4(0.122, 0.161, 0.231, 1.0), self.dark_mode);
+                let hover_color = mix(vec4(0.88, 0.91, 0.94, 1.0), vec4(0.157, 0.204, 0.286, 1.0), self.dark_mode);
+                let selected_color = mix(vec4(0.85, 0.92, 0.98, 1.0), vec4(0.118, 0.196, 0.314, 1.0), self.dark_mode);
                 return mix(mix(base, hover_color, self.hover), selected_color, self.selected);
             }
         }
@@ -220,7 +221,7 @@ live_design! {
             }
         }
 
-        <Label> {
+        add_display_label = <Label> {
             text: "Add Display"
             draw_text: {
                 color: (TEXT_SECONDARY)
@@ -247,7 +248,7 @@ live_design! {
             padding: 12
             align: {y: 0.5}
 
-            <Label> {
+            displays_title = <Label> {
                 text: "Displays"
                 draw_text: {
                     color: (TEXT_PRIMARY)

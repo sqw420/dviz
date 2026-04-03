@@ -394,4 +394,31 @@ mod tests {
         assert!((rotated.x - 0.0).abs() < 1e-5);
         assert!((rotated.y - 1.0).abs() < 1e-5);
     }
+
+#[test]
+fn test_car_urdf_fk() {
+    use std::collections::HashMap;
+    let robot = parse_urdf("/home/demo/dviz/car.urdf").unwrap();
+    
+    // Simulate FK BFS
+    let mut link_world: HashMap<String, (f32,f32,f32)> = HashMap::new();
+    let root = robot.root_link.clone().unwrap();
+    let mut queue = vec![root.clone()];
+    link_world.insert(root, (0.0,0.0,0.0));
+    while let Some(link_name) = queue.first().cloned() {
+        queue.remove(0);
+        let (px,py,pz) = *link_world.get(&link_name).unwrap();
+        for child in robot.child_links(&link_name) {
+            if let Some(joint) = robot.parent_joint(child) {
+                let t = joint.origin.translation;
+                let child_t = (px+t.x, py+t.y, pz+t.z);
+                eprintln!("{} -> {}: {:?}", link_name, child, child_t);
+                link_world.insert(child.to_string(), child_t);
+            }
+            queue.push(child.to_string());
+        }
+    }
+    eprintln!("body: {:?}", link_world.get("body"));
+    eprintln!("right_rear_wheel: {:?}", link_world.get("right_rear_wheel"));
+}
 }

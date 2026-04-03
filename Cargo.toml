@@ -24,7 +24,7 @@ makepad-widgets = { git = "https://github.com/makepad/makepad", branch = "main" 
 rerun = "0.28"
 
 # Dora framework
-dora-node-api = "0.3"
+dora-node-api = "0.5"
 
 # Math
 glam = { version = "0.25", features = ["serde"] }

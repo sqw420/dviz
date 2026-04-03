@@ -33,7 +33,7 @@ nodes:
   # Publishes point clouds at configurable rate
   - id: pcd_source
     operator:
-      python: /Users/nupylot/Public/dora-examples/examples/vehicle-mapping/src/operators/pcd_source_op.py
+      python: /home/demo/dora-examples/examples/vehicle-mapping/src/operators/pcd_source_op.py
       inputs:
         tick: dora/timer/millis/500  # 2 Hz publishing rate
       outputs:
@@ -41,13 +41,13 @@ nodes:
         - frame_info
         - sequence_complete
     env:
-      PCD_DATA_DIR: /Users/nupylot/Public/dora-examples/examples/vehicle-mapping/data/rectangle_sequence
+      PCD_DATA_DIR: /home/demo/dora-examples/examples/vehicle-mapping/data/rectangle_sequence
 
   # ICP Odometry - Estimates poses from point clouds
   # Uses Open3D ICP with local map for robustness
   - id: icp_odometry
     operator:
-      python: /Users/nupylot/Public/dora-examples/examples/vehicle-mapping/src/operators/icp_odometry_op.py
+      python: /home/demo/dora-examples/examples/vehicle-mapping/src/operators/icp_odometry_op.py
       inputs:
         pointcloud: pcd_source/pointcloud
         frame_info: pcd_source/frame_info
@@ -59,7 +59,7 @@ nodes:
   # Accumulates transformed point clouds
   - id: map_builder
     operator:
-      python: /Users/nupylot/Public/dora-examples/examples/vehicle-mapping/src/operators/map_builder_op.py
+      python: /home/demo/dora-examples/examples/vehicle-mapping/src/operators/map_builder_op.py
       inputs:
         pointcloud: pcd_source/pointcloud
         pose: icp_odometry/pose
@@ -71,7 +71,7 @@ nodes:
   # Waypoint Extractor - Extracts waypoints from trajectory
   - id: waypoint_extractor
     operator:
-      python: /Users/nupylot/Public/dora-examples/examples/vehicle-mapping/src/operators/waypoint_extractor_op.py
+      python: /home/demo/dora-examples/examples/vehicle-mapping/src/operators/waypoint_extractor_op.py
       inputs:
         pose: icp_odometry/pose
         map_complete: map_builder/map_complete
@@ -83,7 +83,7 @@ nodes:
   # Receives point clouds, poses, stats and publishes for remote visualization
   - id: dviz_bridge
     build: cargo build --release -p dviz-rerun-bridge
-    path: /Users/nupylot/Public/dviz/target/release/dviz-dora-bridge
+    path: /home/demo/dviz/target/release/dviz-dora-bridge
     inputs:
       pointcloud: pcd_source/pointcloud
       # ICP outputs 4x4 matrix or x,y,z,qx,qy,qz,qw - use odom_pose input for transform3d

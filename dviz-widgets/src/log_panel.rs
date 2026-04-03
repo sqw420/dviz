@@ -25,13 +25,13 @@ live_design! {
         padding: {left: 12, right: 12, top: 6, bottom: 6}
         show_bg: true
         draw_bg: {
-            instance level: 0.0  // 0=debug, 1=info, 2=warn, 3=error
+            instance level: 0.0
+            instance dark_mode: 0.0
             fn pixel(self) -> vec4 {
-                // Tinted backgrounds with more color
-                let debug = vec4(0.95, 0.96, 0.97, 1.0);   // Light slate
-                let info = vec4(0.90, 0.95, 1.0, 1.0);     // Light blue tint
-                let warn = vec4(1.0, 0.96, 0.89, 1.0);     // Light amber tint
-                let error = vec4(1.0, 0.92, 0.92, 1.0);    // Light red tint
+                let debug = mix(vec4(0.95, 0.96, 0.97, 1.0), vec4(0.118, 0.141, 0.200, 1.0), self.dark_mode);
+                let info  = mix(vec4(0.90, 0.95, 1.0,  1.0), vec4(0.102, 0.145, 0.251, 1.0), self.dark_mode);
+                let warn  = mix(vec4(1.0,  0.96, 0.89, 1.0), vec4(0.165, 0.125, 0.063, 1.0), self.dark_mode);
+                let error = mix(vec4(1.0,  0.92, 0.92, 1.0), vec4(0.165, 0.082, 0.082, 1.0), self.dark_mode);
                 let color = mix(mix(debug, info, clamp(self.level, 0.0, 1.0)),
                                mix(warn, error, clamp(self.level - 2.0, 0.0, 1.0)),
                                clamp(self.level - 1.0, 0.0, 1.0) * 0.5 + clamp(self.level - 2.0, 0.0, 1.0) * 0.5);
@@ -51,7 +51,7 @@ live_design! {
                 width: 60
                 text: "0.00s"
                 draw_text: {
-                    color: #9ca3af
+                    color: (TEXT_MUTED)
                     text_style: { font_size: 9.0 }
                 }
             }
@@ -81,7 +81,7 @@ live_design! {
                 level_text = <Label> {
                     text: "INFO"
                     draw_text: {
-                        color: #374151
+                        color: (TEXT_SECONDARY)
                         text_style: { font_size: 8.0 }
                     }
                 }
@@ -103,7 +103,7 @@ live_design! {
             width: Fill
             text: "Log message"
             draw_text: {
-                color: #374151
+                color: (TEXT_PRIMARY)
                 text_style: { font_size: 10.0 }
                 wrap: Word
             }
@@ -182,14 +182,14 @@ live_design! {
             copy_btn = <Button> {
                 width: Fit, height: Fit
                 text: "Copy"
-                draw_text: { color: #6b7280 }
+                draw_text: { color: (TEXT_SECONDARY) }
             }
 
             // Clear button - light theme
             clear_btn = <Button> {
                 width: Fit, height: Fit
                 text: "Clear"
-                draw_text: { color: #6b7280 }
+                draw_text: { color: (TEXT_SECONDARY) }
             }
         }
 
@@ -204,7 +204,7 @@ live_design! {
             // Level filter
             <Label> {
                 text: "Level:"
-                draw_text: { color: #6b7280, text_style: { font_size: 10.0 } }
+                draw_text: { color: (TEXT_SECONDARY), text_style: { font_size: 10.0 } }
             }
             level_filter = <DropDown> {
                 width: 80, height: 26
@@ -217,7 +217,7 @@ live_design! {
             // Node filter - light theme
             <Label> {
                 text: "Node:"
-                draw_text: { color: #6b7280, text_style: { font_size: 10.0 } }
+                draw_text: { color: (TEXT_SECONDARY), text_style: { font_size: 10.0 } }
             }
             node_filter = <DropDown> {
                 width: 120, height: 26
@@ -230,7 +230,7 @@ live_design! {
             // Search input - light theme
             <Label> {
                 text: "Search:"
-                draw_text: { color: #6b7280, text_style: { font_size: 10.0 } }
+                draw_text: { color: (TEXT_SECONDARY), text_style: { font_size: 10.0 } }
             }
             search_input = <TextInput> {
                 width: Fill, height: 26
@@ -251,7 +251,7 @@ live_design! {
                 width: Fill, height: Fit
                 text: ""
                 draw_text: {
-                    color: #374151
+                    color: (TEXT_SECONDARY)
                     text_style: { font_size: 10.0 }
                     wrap: Word
                 }
@@ -290,6 +290,7 @@ pub struct LogDisplayEntry {
 pub struct LogPanel {
     #[deref]
     view: View,
+    #[live] dark_mode: f32,
     #[rust] collapsed: bool,
     #[rust] entries: Vec<LogDisplayEntry>,
     #[rust] filtered_entries: Vec<usize>,  // Indices into entries

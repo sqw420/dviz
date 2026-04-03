@@ -160,6 +160,12 @@ live_design! {
 
                         <View> { width: 10, height: 1 }
 
+                        // Theme toggle
+                        theme_btn = <Button> {
+                            text: "Dark Mode"
+                            draw_text: { color: (TEXT_PRIMARY) }
+                        }
+
                         // Test buttons for Phase 4
                         test_laser_btn = <Button> {
                             text: "Test Laser"
@@ -167,7 +173,7 @@ live_design! {
                         }
 
                         test_robot_btn = <Button> {
-                            text: "Test Robot"
+                            text: "Load URDF"
                             draw_text: { color: #2564fb }
                         }
 
@@ -304,6 +310,8 @@ pub struct App {
     // ROS bag playback
     #[rust] rosbag_player: Option<RosBagPlayer>,
     #[rust] rosbag_playing: bool,
+    // Theme
+    #[rust] dark_mode: bool,
 }
 
 impl LiveRegister for App {
@@ -337,6 +345,8 @@ impl MatchEvent for App {
         // ROS bag playback
         self.rosbag_player = None;
         self.rosbag_playing = false;
+        // Theme
+        self.dark_mode = false;
 
         // Initialize Fixed Frame dropdown with common coordinate frames
         let frame_labels = vec![
@@ -367,6 +377,12 @@ impl MatchEvent for App {
         if self.ui.button(id!(view_btn)).clicked(actions) {
             self.ui.label(id!(status_label)).set_text(cx, "View menu: Panels, Layout, Reset (coming soon)");
             debug_log("View menu clicked");
+        }
+
+        // Theme toggle button
+        if self.ui.button(id!(theme_btn)).clicked(actions) {
+            self.dark_mode = !self.dark_mode;
+            self.apply_theme(cx);
         }
 
         // Frame dropdown changed
@@ -524,6 +540,68 @@ impl AppMain for App {
 }
 
 impl App {
+    fn apply_theme(&mut self, cx: &mut Cx) {
+        let btn_text = if self.dark_mode { "Light Mode" } else { "Dark Mode" };
+        self.ui.button(id!(theme_btn)).set_text(cx, btn_text);
+
+        let bg = if self.dark_mode {
+            Vec4 { x: 0.059, y: 0.090, z: 0.165, w: 1.0 }
+        } else {
+            Vec4 { x: 0.941, y: 0.957, z: 0.973, w: 1.0 }
+        };
+        let panel_bg = if self.dark_mode {
+            Vec4 { x: 0.122, y: 0.161, z: 0.231, w: 1.0 }
+        } else {
+            Vec4 { x: 0.973, y: 0.980, z: 0.988, w: 1.0 }
+        };
+        let toolbar_bg = if self.dark_mode {
+            Vec4 { x: 0.059, y: 0.090, z: 0.165, w: 1.0 }
+        } else {
+            Vec4 { x: 0.910, y: 0.941, z: 0.969, w: 1.0 }
+        };
+        let text_primary = if self.dark_mode {
+            Vec4 { x: 0.945, y: 0.961, z: 0.976, w: 1.0 }
+        } else {
+            Vec4 { x: 0.118, y: 0.161, z: 0.231, w: 1.0 }
+        };
+        let text_secondary = if self.dark_mode {
+            Vec4 { x: 0.580, y: 0.647, z: 0.722, w: 1.0 }
+        } else {
+            Vec4 { x: 0.278, y: 0.337, z: 0.412, w: 1.0 }
+        };
+
+        self.ui.view(id!(body)).apply_over(cx, live!{ draw_bg: { color: (bg) } });
+        self.ui.view(id!(toolbar)).apply_over(cx, live!{ draw_bg: { color: (toolbar_bg) } });
+        self.ui.label(id!(status_label)).apply_over(cx, live!{ draw_text: { color: (text_secondary) } });
+        self.ui.view(id!(left_panel)).apply_over(cx, live!{ draw_bg: { color: (panel_bg) } });
+        self.ui.widget(id!(displays_panel)).apply_over(cx, live!{ draw_bg: { color: (panel_bg) } });
+        self.ui.label(id!(displays_title)).apply_over(cx, live!{ draw_text: { color: (text_primary) } });
+        self.ui.label(id!(display_count)).apply_over(cx, live!{ draw_text: { color: (text_secondary) } });
+        self.ui.label(id!(display_list_content)).apply_over(cx, live!{ draw_text: { color: (text_primary) } });
+        self.ui.label(id!(add_display_label)).apply_over(cx, live!{ draw_text: { color: (text_secondary) } });
+        let dm: f64 = if self.dark_mode { 1.0 } else { 0.0 };
+        self.ui.widget(id!(dataflow_graph)).apply_over(cx, live!{ draw_bg: { color: (panel_bg) } });
+        self.ui.widget(id!(dataflow_graph)).apply_over(cx, live!{ dark_mode: (dm) });
+        self.ui.label(id!(graph_content)).apply_over(cx, live!{ draw_text: { color: (text_secondary) } });
+        self.ui.label(id!(node_count)).apply_over(cx, live!{ draw_text: { color: (text_secondary) } });
+        self.ui.widget(id!(graph_canvas)).apply_over(cx, live!{ draw_bg: { dark_mode: (dm) } });
+        self.ui.view(id!(center_panel)).apply_over(cx, live!{ draw_bg: { color: (bg) } });
+        self.ui.widget(id!(node_detail_panel)).apply_over(cx, live!{ draw_bg: { color: (panel_bg) } });
+        self.ui.label(id!(log_count)).apply_over(cx, live!{ draw_text: { color: (text_secondary) } });
+        self.ui.label(id!(inputs_content)).apply_over(cx, live!{ draw_text: { color: (text_secondary) } });
+        self.ui.label(id!(outputs_content)).apply_over(cx, live!{ draw_text: { color: (text_secondary) } });
+        self.ui.label(id!(logs_content)).apply_over(cx, live!{ draw_text: { color: (text_secondary) } });
+        self.ui.view(id!(right_panel)).apply_over(cx, live!{ draw_bg: { color: (panel_bg) } });
+        self.ui.widget(id!(properties_panel)).apply_over(cx, live!{ draw_bg: { color: (panel_bg) } });
+        self.ui.label(id!(display_name)).apply_over(cx, live!{ draw_text: { color: (text_primary) } });
+        self.ui.label(id!(display_type)).apply_over(cx, live!{ draw_text: { color: (text_secondary) } });
+        self.ui.widget(id!(log_panel)).apply_over(cx, live!{ draw_bg: { color: (panel_bg) } });
+        self.ui.widget(id!(log_panel)).apply_over(cx, live!{ dark_mode: (dm) });
+        self.ui.label(id!(log_content)).apply_over(cx, live!{ draw_text: { color: (text_primary) } });
+
+        self.ui.redraw(cx);
+    }
+
     fn launch_rerun(&mut self, cx: &mut Cx) {
         debug_log("Launching Rerun viewer via CLI...");
 
@@ -547,6 +625,8 @@ impl App {
         let spawn_result = std::process::Command::new("rerun")
             .arg("--window-size")
             .arg("1400x850")
+            .env("WAYLAND_DISPLAY", "")
+            .env("WGPU_BACKEND", "vulkan")
             .spawn();
 
         match spawn_result {
@@ -986,53 +1066,63 @@ impl App {
     }
 
     fn test_robot_model(&mut self, cx: &mut Cx) {
-        debug_log("Testing RobotModel display with URDF loader...");
+        let Some(path) = rfd::FileDialog::new()
+            .add_filter("URDF", &["urdf"])
+            .add_filter("All Files", &["*"])
+            .set_title("Open URDF File")
+            .pick_file()
+        else {
+            debug_log("URDF file dialog cancelled");
+            return;
+        };
 
-        // Check if Rerun is connected
         let Some(bridge) = &self.rerun_bridge else {
+            debug_log("URDF load failed: Rerun not started");
             self.ui.label(id!(status_label)).set_text(cx, "Error: Launch Rerun first!");
             self.ui.redraw(cx);
             return;
         };
-
-        // Use Rerun's built-in URDF data loader for proper mesh rendering
-        // The fusion.urdf file contains a Ford Fusion car with sensors
-        let urdf_path = std::path::Path::new("/Users/nupylot/Public/mviz/fusion.urdf");
-
-        if !urdf_path.exists() {
-            debug_log(&format!("URDF file not found: {:?}", urdf_path));
-            self.ui.label(id!(status_label)).set_text(cx, "Error: fusion.urdf not found!");
+        let Some(stream) = bridge.stream() else {
+            debug_log("URDF load failed: no recording stream");
+            self.ui.label(id!(status_label)).set_text(cx, "Error: No recording stream");
             self.ui.redraw(cx);
             return;
-        }
+        };
 
-        // Get the recording stream and use log_file_from_path
-        if let Some(stream) = bridge.stream() {
-            debug_log(&format!("Loading URDF from: {:?}", urdf_path));
-
-            // Load URDF with Rerun's built-in loader
-            // entity_path_prefix puts robot under "world/robot" for visibility
-            // static=true means the robot structure doesn't change over time
-            match stream.log_file_from_path(
-                urdf_path,
-                Some("world/robot".into()),  // entity_path_prefix
-                true,  // static
-            ) {
-                Ok(()) => {
-                    debug_log("URDF loaded successfully via Rerun data loader!");
-                    let sim_status = if self.simulation_running { " (Sim running)" } else { " (Click Play for sim)" };
-                    self.ui.label(id!(status_label)).set_text(cx, &format!("Ford Fusion loaded from URDF{}", sim_status));
-                }
-                Err(e) => {
-                    debug_log(&format!("Failed to load URDF: {}", e));
-                    self.ui.label(id!(status_label)).set_text(cx, &format!("URDF load error: {}", e));
+        let urdf_path = path.to_string_lossy();
+        debug_log(&format!("Loading URDF: {}", urdf_path));
+        let mut display = dviz_displays::RobotModelDisplay::new("robot");
+        match display.load_urdf_file(&urdf_path) {
+            Err(e) => {
+                debug_log(&format!("URDF load error: {}", e));
+                self.ui.label(id!(status_label)).set_text(cx, &format!("URDF load error: {}", e));
+            }
+            Ok(()) => {
+                debug_log(&format!("URDF parsed successfully: {}", urdf_path));
+                let fixed_frame = dviz_core::FrameId::new("world");
+                let tf_buffer = dviz_transform::TransformBuffer::new(
+                    fixed_frame.clone(),
+                    std::time::Duration::from_secs(10),
+                );
+                let now = dviz_core::Timestamp::now();
+                let ctx = dviz_displays::DisplayUpdateContext::new(
+                    stream, &tf_buffer, &fixed_frame, &now, std::time::Duration::ZERO,
+                );
+                let name = path.file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_else(|| "robot".to_string());
+                match display.update(&ctx) {
+                    Ok(()) => {
+                        debug_log(&format!("URDF rendered: {}", name));
+                        self.ui.label(id!(status_label)).set_text(cx, &format!("{} loaded", name));
+                    }
+                    Err(e) => {
+                        debug_log(&format!("URDF render error: {}", e));
+                        self.ui.label(id!(status_label)).set_text(cx, &format!("Render error: {}", e));
+                    }
                 }
             }
-        } else {
-            debug_log("No recording stream available");
-            self.ui.label(id!(status_label)).set_text(cx, "Error: No recording stream");
         }
-
         self.ui.redraw(cx);
     }
 
